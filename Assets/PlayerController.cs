@@ -4,8 +4,8 @@ public class PlayerController : MonoBehaviour
 {
     private Animator animator;
 
-    public float walkSpeed = 2f;
-    public float runSpeed = 5f;
+    public float walkSpeed = 0.3f;
+    public float runSpeed = 1f;
     public float backwardSpeed = 1.5f;
     public float turnSpeed = 120f;
 

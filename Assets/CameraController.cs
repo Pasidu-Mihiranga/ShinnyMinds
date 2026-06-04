@@ -6,15 +6,15 @@ public class CameraController : MonoBehaviour
     // =========================
     // SETTINGS
     // =========================
-    public float mouseSensitivity = 3200000f;
+    public float mouseSensitivity = 2f;
 
     // CAMERA FOLLOW SPEED
-    public float followSpeed = 2f;
+    public float followSpeed = 5f;
 
     // PLAYER
     public Transform playerBody;
 
-    // VERTICAL ROTATION
+    // VERTICAL LOOK
     private float xRotation = 0f;
 
     void Start()
@@ -61,7 +61,7 @@ public class CameraController : MonoBehaviour
             );
 
         // =========================
-        // CHECK MOVEMENT
+        // MOVEMENT CHECK
         // =========================
         bool isMoving =
             Input.GetKey(KeyCode.W)
@@ -69,32 +69,30 @@ public class CameraController : MonoBehaviour
             Input.GetKey(KeyCode.S);
 
         // =========================
-        // ROTATE PLAYER WHEN MOVING
+        // ONLY WHEN MOVING
         // =========================
         if (isMoving)
         {
+            // ROTATE PLAYER
             playerBody.Rotate(
                 Vector3.up * mouseX
             );
+
+            // AUTO CENTER CAMERA
+            Quaternion targetRotation =
+                Quaternion.Euler(
+                    transform.eulerAngles.x,
+                    playerBody.eulerAngles.y,
+                    0f
+                );
+
+            transform.rotation =
+                Quaternion.Slerp(
+                    transform.rotation,
+                    targetRotation,
+                    followSpeed * Time.deltaTime
+                );
         }
-
-        // =========================
-        // AUTO CAMERA CENTERING
-        // =========================
-        Quaternion targetRotation =
-            Quaternion.Euler(
-                transform.eulerAngles.x,
-                playerBody.eulerAngles.y,
-                0f
-            );
-
-        // SMOOTH FOLLOW
-        transform.rotation =
-            Quaternion.Slerp(
-                transform.rotation,
-                targetRotation,
-                followSpeed * Time.deltaTime
-            );
     }
 }
 
