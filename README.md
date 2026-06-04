@@ -225,6 +225,6 @@ Possible future features:
 
 # Screenshots
 
-![Gameplay](screenshots/gameplay.png)
+![Gameplay](screenshots/Gameplay.png)
 
 ---
