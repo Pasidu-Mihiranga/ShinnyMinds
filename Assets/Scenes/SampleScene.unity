@@ -172,7 +172,8 @@ PrefabInstance:
       value: Worldcity
       objectReference: {fileID: 0}
     m_RemovedComponents: []
-    m_RemovedGameObjects: []
+    m_RemovedGameObjects:
+    - {fileID: -2401208221417682082, guid: 7ee49876304ce8848a66d37560196e88, type: 3}
     m_AddedGameObjects: []
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 7ee49876304ce8848a66d37560196e88, type: 3}
@@ -761,6 +762,9 @@ MonoBehaviour:
   backwardSpeed: 1.5
   turnSpeed: 120
   gravity: -9.81
+  forceExactGroundY: 1
+  exactGroundY: -0.057
+  addMissingEnvironmentColliders: 1
 --- !u!4 &1286381381 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: d88e7d4ce8ee51f42ac8f488e56827c0, type: 3}
