@@ -1,0 +1,65 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1105 &110500000
+HumanTemplate:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: New Human Template
+  m_BoneTemplate:
+    Chest: Base Human004Spine006
+    Head: Base Human004Head001
+    Hips: Base Human004Pelvis001
+    Jaw: 
+    Left Index Distal: Base Human004LDigit23
+    Left Index Intermediate: Base Human004LDigit22
+    Left Index Proximal: Base Human004LDigit21
+    Left Little Distal: Base Human004LDigit53
+    Left Little Intermediate: Base Human004LDigit52
+    Left Little Proximal: Base Human004LDigit51
+    Left Middle Distal: Base Human004LDigit33
+    Left Middle Intermediate: Base Human004LDigit32
+    Left Middle Proximal: Base Human004LDigit31
+    Left Ring Distal: Base Human004LDigit43
+    Left Ring Intermediate: Base Human004LDigit42
+    Left Ring Proximal: Base Human004LDigit41
+    Left Thumb Distal: Base Human004LDigit13
+    Left Thumb Intermediate: Base Human004LDigit12
+    Left Thumb Proximal: Base Human004LDigit11
+    LeftEye: SOL GOZ001
+    LeftFoot: Base Human004LFoot001
+    LeftHand: Base Human004LPalm001
+    LeftLowerArm: Base Human004LForearm003
+    LeftLowerLeg: Base Human004LCalf001
+    LeftShoulder: Base Human004LCollarbone001
+    LeftToes: Base Human004LDigit054
+    LeftUpperArm: Base Human004LUpperarm001
+    LeftUpperLeg: Base Human004LThigh001
+    Neck: Base Human004Neck003
+    Right Index Distal: Base Human004RDigit23
+    Right Index Intermediate: Base Human004RDigit22
+    Right Index Proximal: Base Human004RDigit21
+    Right Little Distal: Base Human004RDigit53
+    Right Little Intermediate: Base Human004RDigit52
+    Right Little Proximal: Base Human004RDigit51
+    Right Middle Distal: Base Human004RDigit33
+    Right Middle Intermediate: Base Human004RDigit32
+    Right Middle Proximal: Base Human004RDigit31
+    Right Ring Distal: Base Human004RDigit43
+    Right Ring Intermediate: Base Human004RDigit42
+    Right Ring Proximal: Base Human004RDigit41
+    Right Thumb Distal: Base Human004RDigit13
+    Right Thumb Intermediate: Base Human004RDigit12
+    Right Thumb Proximal: Base Human004RDigit11
+    RightEye: sag goz
+    RightFoot: Base Human004RFoot001
+    RightHand: Base Human004RPalm001
+    RightLowerArm: Base Human004RForearm003
+    RightLowerLeg: Base Human004RCalf001
+    RightShoulder: Base Human004RCollarbone001
+    RightToes: Base Human004RDigit11
+    RightUpperArm: Base Human004RUpperarm001
+    RightUpperLeg: Base Human004RThigh001
+    Spine: Base Human004Spine005
+    UpperChest: Base Human004Spine007
