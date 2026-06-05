@@ -1,4 +1,3 @@
-
 using UnityEngine;
 
 public class CarAI : MonoBehaviour
@@ -6,10 +5,10 @@ public class CarAI : MonoBehaviour
     // WAYPOINTS
     public Transform[] waypoints;
 
-    // SPEED
+    // MOVEMENT SPEED
     public float speed = 5f;
 
-    // ROTATION SPEED
+    // TURN SPEED
     public float turnSpeed = 5f;
 
     // CURRENT TARGET
@@ -21,27 +20,33 @@ public class CarAI : MonoBehaviour
         if (waypoints.Length == 0)
             return;
 
-        // TARGET POINT
+        // CURRENT TARGET
         Transform target =
             waypoints[currentWaypoint];
 
+        // TARGET POSITION
+        Vector3 targetPosition =
+            target.position;
+
+        // KEEP SAME HEIGHT
+        targetPosition.y =
+            transform.position.y;
+
         // DIRECTION
-        Vector3 direction = (target.position - transform.position); // IGNORE HEIGHT DIFFERENCE 
-        direction.y = 0f; 
-        direction = direction.normalized;
-        
+        Vector3 direction =
+            (targetPosition - transform.position)
+            .normalized;
+
         // MOVE
         transform.position +=
             direction
             * speed
             * Time.deltaTime;
 
-        // ROTATE SMOOTHLY
-        
+        // ROTATE
         Quaternion lookRotation =
             Quaternion.LookRotation(direction)
             * Quaternion.Euler(0, 180, 180);
-
 
         transform.rotation =
             Quaternion.Slerp(
@@ -50,11 +55,11 @@ public class CarAI : MonoBehaviour
                 turnSpeed * Time.deltaTime
             );
 
-        // DISTANCE CHECK
+        // DISTANCE TO TARGET
         float distance =
             Vector3.Distance(
                 transform.position,
-                target.position
+                targetPosition
             );
 
         // NEXT WAYPOINT
@@ -62,7 +67,7 @@ public class CarAI : MonoBehaviour
         {
             currentWaypoint++;
 
-            // LOOP BACK
+            // LOOP BACK TO START
             if (currentWaypoint >= waypoints.Length)
             {
                 currentWaypoint = 0;
