@@ -3,21 +3,23 @@ using TMPro;
 
 public class DoorController : MonoBehaviour
 {
-    // Actual door object that rotates
     public Transform door;
-
-    // UI text object
     public GameObject doorPrompt;
+
+    public float openAngle = 90f;
+    public float doorOpenSpeed = 3f;
 
     private bool playerNearby = false;
     private bool isOpen = false;
 
-    public float openAngle = 90f;
-
     private Quaternion closedRotation;
     private Quaternion openRotation;
+    private Quaternion targetRotation;
 
     private TMP_Text promptText;
+
+    [HideInInspector]
+    public bool playerIsOutside = true;
 
     void Start()
     {
@@ -32,6 +34,8 @@ public class DoorController : MonoBehaviour
         openRotation =
             closedRotation *
             Quaternion.Euler(0, openAngle, 0);
+
+        targetRotation = closedRotation;
 
         if (doorPrompt != null)
         {
@@ -50,29 +54,56 @@ public class DoorController : MonoBehaviour
 
     void Update()
     {
-        // Update prompt text
+        door.localRotation = Quaternion.Lerp(
+            door.localRotation,
+            targetRotation,
+            Time.deltaTime * doorOpenSpeed
+        );
+
         if (playerNearby && promptText != null)
         {
-            if (isOpen)
-                promptText.text = "Press E to Close Door";
-            else
-                promptText.text = "Press E to Open Door";
+            promptText.text =
+                isOpen
+                ? "Press E to Close Door"
+                : "Press E to Open Door";
         }
 
-        // Open / Close Door
         if (playerNearby && Input.GetKeyDown(KeyCode.E))
         {
-            isOpen = !isOpen;
+            Animator playerAnimator =
+                GameObject.FindGameObjectWithTag("Player")
+                .GetComponent<Animator>();
 
-            if (isOpen)
+            // OUTSIDE -> OPEN
+            if (!isOpen && playerIsOutside)
             {
-                door.localRotation = openRotation;
-                Debug.Log("Door Opened");
+                playerAnimator.SetTrigger("PushDoor");
+
+                Invoke(nameof(OpenDoor), 1.5f);
             }
-            else
+
+            // OUTSIDE -> CLOSE
+            else if (isOpen && playerIsOutside)
             {
-                door.localRotation = closedRotation;
-                Debug.Log("Door Closed");
+                playerAnimator.SetTrigger("PullDoor");
+
+                Invoke(nameof(CloseDoor), 2.0f);
+            }
+
+            // INSIDE -> OPEN
+            else if (!isOpen && !playerIsOutside)
+            {
+                playerAnimator.SetTrigger("PullDoor");
+
+                Invoke(nameof(OpenDoor), 2.0f);
+            }
+
+            // INSIDE -> CLOSE
+            else if (isOpen && !playerIsOutside)
+            {
+                playerAnimator.SetTrigger("PullDoor");
+
+                Invoke(nameof(CloseDoor), 2.0f);
             }
         }
     }
@@ -97,5 +128,21 @@ public class DoorController : MonoBehaviour
             if (doorPrompt != null)
                 doorPrompt.SetActive(false);
         }
+    }
+
+    public void OpenDoor()
+    {
+        isOpen = true;
+        targetRotation = openRotation;
+
+        Debug.Log("Door Opened");
+    }
+
+    public void CloseDoor()
+    {
+        isOpen = false;
+        targetRotation = closedRotation;
+
+        Debug.Log("Door Closed");
     }
 }
