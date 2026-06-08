@@ -8,9 +8,11 @@ public class NPCInteraction : MonoBehaviour
 
     void Update()
     {
-        if (playerNear && Input.GetKeyDown(KeyCode.E))
+        if(playerNear &&
+        !groqDialogue.IsDialogueOpen &&
+        Input.GetKeyDown(KeyCode.E))
         {
-            groqDialogue.GenerateAdvice();
+            groqDialogue.GenerateConversation();
         }
     }
 

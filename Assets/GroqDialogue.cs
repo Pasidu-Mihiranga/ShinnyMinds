@@ -3,49 +3,68 @@ using UnityEngine.Networking;
 using TMPro;
 using System.Collections;
 using System.Text;
+using Newtonsoft.Json.Linq;
 
 public class GroqDialogue : MonoBehaviour
 {
+    [Header("Animators")]
+    public Animator npcAnimator;
+    public Animator girlAnimator;
+
+    private string[] dialogueLines;
+    private int currentLine = 0;
+
     [Header("UI")]
     public TMP_Text dialogueText;
+    public TMP_Text speakerText;
     public GameObject dialoguePanel;
 
     [Header("Player")]
-    public MonoBehaviour PlayerController;
+    public MonoBehaviour playerController;
 
     [Header("Groq")]
     [TextArea]
     public string groqApiKey;
 
-    public void GenerateAdvice()
+    private bool dialogueOpen = false;
+
+    public bool IsDialogueOpen
     {
-        StartCoroutine(GetAdvice());
+        get { return dialogueOpen; }
     }
 
-    IEnumerator GetAdvice()
+    public void GenerateConversation()
+    {
+        StartCoroutine(GetConversation());
+    }
+
+    IEnumerator GetConversation()
     {
         dialoguePanel.SetActive(true);
+        dialogueOpen = true;
 
-        if (PlayerController != null)
+        if (playerController != null)
         {
-            PlayerController.enabled = false;
+            playerController.enabled = false;
         }
 
         string prompt =
-            "You are a wise old mentor. "
-            + "Give one short road safety advice "
-            + "to a little girl in 2 sentences only.";
+            "Create a short conversation between a little girl and a wise road safety mentor. " +
+            "Exactly 4 lines. " +
+            "Format: Girl:, NPC:, Girl:, NPC:. " +
+            "Teach one road safety lesson.";
 
-        string json =
-        "{"
-        + "\"model\":\"llama-3.3-70b-versatile\","
-        + "\"messages\":["
-        + "{"
-        + "\"role\":\"user\","
-        + "\"content\":\"" + prompt + "\""
-        + "}"
-        + "]"
-        + "}";
+        JObject requestBody = new JObject(
+            new JProperty("model", "llama-3.3-70b-versatile"),
+            new JProperty("messages",
+                new JArray(
+                    new JObject(
+                        new JProperty("role", "user"),
+                        new JProperty("content", prompt)
+                    )
+                )
+            )
+        );
 
         UnityWebRequest request =
             new UnityWebRequest(
@@ -54,7 +73,7 @@ public class GroqDialogue : MonoBehaviour
             );
 
         byte[] bodyRaw =
-            Encoding.UTF8.GetBytes(json);
+            Encoding.UTF8.GetBytes(requestBody.ToString());
 
         request.uploadHandler =
             new UploadHandlerRaw(bodyRaw);
@@ -74,39 +93,34 @@ public class GroqDialogue : MonoBehaviour
 
         yield return request.SendWebRequest();
 
-        if (request.result ==
-            UnityWebRequest.Result.Success)
+        if (request.result == UnityWebRequest.Result.Success)
         {
-            string response =
-                request.downloadHandler.text;
-
-            Debug.Log(response);
-
-            int start =
-                response.IndexOf("\"content\":\"");
-
-            if (start != -1)
+            try
             {
-                start += 11;
-
-                int end =
-                    response.IndexOf("\"", start);
-
-                string advice =
-                    response.Substring(
-                        start,
-                        end - start
+                JObject response =
+                    JObject.Parse(
+                        request.downloadHandler.text
                     );
 
-                advice = advice.Replace("\\n", "\n");
-                advice = advice.Replace("\\\"", "\"");
+                string content =
+                    response["choices"][0]
+                    ["message"]
+                    ["content"]
+                    .ToString();
 
-                dialogueText.text = advice;
+                dialogueLines =
+                    content.Split('\n');
+
+                currentLine = 0;
+
+                ShowCurrentLine();
             }
-            else
+            catch (System.Exception ex)
             {
+                Debug.LogError(ex.ToString());
+
                 dialogueText.text =
-                    "Could not read AI response.";
+                    "Failed to parse AI response.";
             }
         }
         else
@@ -121,21 +135,105 @@ public class GroqDialogue : MonoBehaviour
         }
     }
 
+    void SetNPCTalking()
+    {
+        if (npcAnimator != null)
+            npcAnimator.SetBool("IsTalking", true);
+
+        if (girlAnimator != null)
+            girlAnimator.SetBool("IsTalking", false);
+    }
+
+    void SetGirlTalking()
+    {
+        if (girlAnimator != null)
+            girlAnimator.SetBool("IsTalking", true);
+
+        if (npcAnimator != null)
+            npcAnimator.SetBool("IsTalking", false);
+    }
+
+    void StopTalking()
+    {
+        if (npcAnimator != null)
+            npcAnimator.SetBool("IsTalking", false);
+
+        if (girlAnimator != null)
+            girlAnimator.SetBool("IsTalking", false);
+    }
+
+    void ShowCurrentLine()
+    {
+        if (dialogueLines == null ||
+            currentLine >= dialogueLines.Length)
+        {
+            return;
+        }
+
+        string line =
+            dialogueLines[currentLine].Trim();
+
+        if (line.StartsWith("Girl:"))
+        {
+            speakerText.text = "Girl";
+
+            dialogueText.text =
+                line.Replace("Girl:", "").Trim();
+
+            SetGirlTalking();
+        }
+        else if (line.StartsWith("NPC:"))
+        {
+            speakerText.text = "NPC";
+
+            dialogueText.text =
+                line.Replace("NPC:", "").Trim();
+
+            SetNPCTalking();
+        }
+        else
+        {
+            speakerText.text = "";
+
+            dialogueText.text = line;
+
+            StopTalking();
+        }
+    }
+
     public void CloseDialogue()
     {
         dialoguePanel.SetActive(false);
+        dialogueOpen = false;
 
-        if (PlayerController != null)
+        StopTalking();
+
+        if (playerController != null)
         {
-            PlayerController.enabled = true;
+            playerController.enabled = true;
         }
     }
 
     void Update()
     {
-        if (dialoguePanel != null &&
-            dialoguePanel.activeSelf &&
-            Input.GetKeyDown(KeyCode.Space))
+        if (!dialoguePanel.activeSelf)
+            return;
+
+        if (Input.GetKeyDown(KeyCode.E))
+        {
+            currentLine++;
+
+            if (currentLine < dialogueLines.Length)
+            {
+                ShowCurrentLine();
+            }
+            else
+            {
+                CloseDialogue();
+            }
+        }
+
+        if (Input.GetKeyDown(KeyCode.F))
         {
             CloseDialogue();
         }
