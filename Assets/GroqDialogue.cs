@@ -7,9 +7,15 @@ using Newtonsoft.Json.Linq;
 
 public class GroqDialogue : MonoBehaviour
 {
+    [Header("NPC Topic")]
+    public string safetyTopic =
+        "road crossing safety";
+
     [Header("Animators")]
     public Animator npcAnimator;
     public Animator girlAnimator;
+
+    public ElevenLabsTTS tts;
 
     private string[] dialogueLines;
     private int currentLine = 0;
@@ -17,6 +23,7 @@ public class GroqDialogue : MonoBehaviour
     [Header("UI")]
     public TMP_Text dialogueText;
     public TMP_Text speakerText;
+    public TMP_Text continueText;
     public GameObject dialoguePanel;
 
     [Header("Player")]
@@ -41,6 +48,12 @@ public class GroqDialogue : MonoBehaviour
     IEnumerator GetConversation()
     {
         dialoguePanel.SetActive(true);
+
+        if (continueText != null)
+        {
+            continueText.text = "Generating...";
+        }
+
         dialogueOpen = true;
 
         if (playerController != null)
@@ -48,11 +61,55 @@ public class GroqDialogue : MonoBehaviour
             playerController.enabled = false;
         }
 
+        Debug.Log("TOPIC = " + safetyTopic);
+
+        string topicRules = "";
+
+        if (safetyTopic == "road crossing safety")
+        {
+            topicRules =
+                "- Teach looking left and right.\n" +
+                "- Teach using zebra crossings.\n" +
+                "- Teach crossing safely.\n";
+        }
+        else if (safetyTopic == "school zone safety")
+        {
+            topicRules =
+                "- Teach walking on sidewalks.\n" +
+                "- Teach obeying crossing guards.\n" +
+                "- Teach school bus safety.\n" +
+                "- Do NOT discuss zebra crossings.\n";
+        }
+        else if (safetyTopic == "traffic light safety")
+        {
+            topicRules =
+                "- Teach traffic lights.\n" +
+                "- Teach pedestrian signals.\n" +
+                "- Do NOT discuss school buses.\n";
+        }
+        else if (safetyTopic == "bus stop safety")
+        {
+            topicRules =
+                "- Teach waiting for the bus.\n" +
+                "- Teach boarding safely.\n" +
+                "- Do NOT discuss traffic lights.\n";
+        }
+
         string prompt =
-            "Create a short conversation between a little girl and a wise road safety mentor. " +
-            "Exactly 4 lines. " +
-            "Format: Girl:, NPC:, Girl:, NPC:. " +
-            "Teach one road safety lesson.";
+            "Create a conversation between a little girl and a wise mentor.\n" +
+            "Exactly 4 lines.\n" +
+            "Format:\n" +
+            "Girl:\n" +
+            "NPC:\n" +
+            "Girl:\n" +
+            "NPC:\n\n" +
+
+            "TOPIC: " + safetyTopic + "\n\n" +
+
+            "IMPORTANT RULES:\n" +
+            topicRules +
+            "- Keep answers short.\n" +
+            "- Suitable for a 9-year-old child.\n";
 
         JObject requestBody = new JObject(
             new JProperty("model", "llama-3.3-70b-versatile"),
@@ -137,6 +194,8 @@ public class GroqDialogue : MonoBehaviour
 
     void SetNPCTalking()
     {
+        Debug.Log("NPC Animator = " +
+         npcAnimator.gameObject.name);
         if (npcAnimator != null)
             npcAnimator.SetBool("IsTalking", true);
 
@@ -146,6 +205,8 @@ public class GroqDialogue : MonoBehaviour
 
     void SetGirlTalking()
     {
+        Debug.Log("Girl Animator = " +
+                girlAnimator.gameObject.name);
         if (girlAnimator != null)
             girlAnimator.SetBool("IsTalking", true);
 
@@ -175,29 +236,64 @@ public class GroqDialogue : MonoBehaviour
 
         if (line.StartsWith("Girl:"))
         {
-            speakerText.text = "Girl";
+            if (speakerText != null)
+                speakerText.text = "Girl";
 
             dialogueText.text =
                 line.Replace("Girl:", "").Trim();
 
             SetGirlTalking();
+
+            if (continueText != null)
+            {
+                continueText.text =
+                    "Speaking...";
+            }
+
+            if (tts != null)
+            {
+                tts.SpeakGirl(
+                    dialogueText.text
+                );
+            }
         }
         else if (line.StartsWith("NPC:"))
         {
-            speakerText.text = "NPC";
+            if (speakerText != null)
+                speakerText.text = "NPC";
 
             dialogueText.text =
                 line.Replace("NPC:", "").Trim();
 
             SetNPCTalking();
+
+            if (continueText != null)
+            {
+                continueText.text =
+                    "Speaking...";
+            }
+
+            if (tts != null)
+            {
+                tts.SpeakNPC(
+                    dialogueText.text
+                );
+            }
         }
         else
         {
-            speakerText.text = "";
+            if (speakerText != null)
+                speakerText.text = "";
 
             dialogueText.text = line;
 
             StopTalking();
+
+            if (continueText != null)
+            {
+                continueText.text =
+                    "E = Next | F = Leave";
+            }
         }
     }
 
@@ -219,7 +315,11 @@ public class GroqDialogue : MonoBehaviour
         if (!dialoguePanel.activeSelf)
             return;
 
-        if (Input.GetKeyDown(KeyCode.E))
+        if (
+            Input.GetKeyDown(KeyCode.E)
+            &&
+            (tts == null || !tts.IsSpeaking)
+        )
         {
             currentLine++;
 
@@ -236,6 +336,50 @@ public class GroqDialogue : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.F))
         {
             CloseDialogue();
+        }
+    }
+
+    IEnumerator WaitForSpeechToFinish()
+    {
+        if (continueText != null)
+        {
+            continueText.text =
+                "Speaking...";
+        }
+
+        while (
+            tts != null &&
+            tts.IsSpeaking
+        )
+        {
+            yield return null;
+        }
+
+        StopTalking();
+
+        if (continueText != null)
+        {
+            continueText.text =
+                "E = Next    |    F = Leave";
+        }
+    }
+
+    void Start()
+    {
+        if (tts != null)
+        {
+            tts.OnSpeechFinished += HandleSpeechFinished;
+        }
+    }
+
+    void HandleSpeechFinished()
+    {
+        StopTalking();
+
+        if (continueText != null)
+        {
+            continueText.text =
+                "E = Next | F = Leave";
         }
     }
 }
