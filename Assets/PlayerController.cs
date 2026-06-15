@@ -288,8 +288,5 @@ public class PlayerController : MonoBehaviour
         );
     }
 
-    private void OnControllerColliderHit(ControllerColliderHit hit)
-    {
-        Debug.Log("Blocked By: " + hit.gameObject.name);
-    }
+    
 }
