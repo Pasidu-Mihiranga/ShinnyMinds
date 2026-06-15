@@ -6,6 +6,10 @@ public class DoorController : MonoBehaviour
     public Transform door;
     public GameObject doorPrompt;
 
+    public AudioSource audioSource;
+    public AudioClip openSound;
+    public AudioClip closeSound;
+
     public float openAngle = 90f;
     public float doorOpenSpeed = 3f;
 
@@ -135,6 +139,11 @@ public class DoorController : MonoBehaviour
         isOpen = true;
         targetRotation = openRotation;
 
+        if (audioSource != null && openSound != null)
+        {
+            audioSource.PlayOneShot(openSound);
+        }
+
         Debug.Log("Door Opened");
     }
 
@@ -142,6 +151,11 @@ public class DoorController : MonoBehaviour
     {
         isOpen = false;
         targetRotation = closedRotation;
+
+        if (audioSource != null && closeSound != null)
+        {
+            audioSource.PlayOneShot(closeSound);
+        }
 
         Debug.Log("Door Closed");
     }
