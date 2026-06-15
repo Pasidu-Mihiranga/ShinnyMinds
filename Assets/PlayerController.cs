@@ -15,7 +15,6 @@ public class PlayerController : MonoBehaviour
     // GRAVITY
     public float gravity = -20f;
     private float verticalVelocity = 0f;
-    private bool isJumping = false;
 
     void Start()
     {
@@ -246,8 +245,6 @@ public class PlayerController : MonoBehaviour
             animator.SetTrigger("Jump");
 
             verticalVelocity = 7f;
-
-            isJumping = true;
         }
 
         verticalVelocity +=
@@ -260,11 +257,6 @@ public class PlayerController : MonoBehaviour
             * verticalVelocity * Time.deltaTime;
 
         controller.Move(finalMove);
-
-        if (controller.isGrounded)
-        {
-            isJumping = false;
-        }
 
         // ANIMATOR
         animator.SetFloat(
