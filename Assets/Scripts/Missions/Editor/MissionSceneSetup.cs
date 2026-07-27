@@ -96,7 +96,7 @@ namespace ShinyMinds.Missions.EditorTools
 
         // ------------------------------------------------------------------- 3. scene
 
-        [MenuItem("ShinyMinds/Setup/3. Wire Open Scene")]
+        [MenuItem("ShinyMinds/Setup/6. Wire Open Scene")]
         public static void WireScene()
         {
             GameObject player = GameObject.FindGameObjectWithTag("Player");
@@ -109,13 +109,29 @@ namespace ShinyMinds.Missions.EditorTools
             int layer = EnsureCameraIgnoreLayer();
 
             WirePlayer(player, layer);
-            GameObject system = EnsureMissionSystem(player);
-            EnsureStaging(player, system);
+            EnsureMissionSystem(player);
+            Transform staging = EnsureStaging(player);
+            MissionCharacterBuilder.EnsureStrangerInScene(staging);
             WireOtherActors(layer);
             FixCameraCollision(layer);
 
             EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
             Debug.Log("Scene wired. Save the scene (Ctrl+S), then press Play.");
+        }
+
+        /// <summary>Runs the whole setup in dependency order.</summary>
+        [MenuItem("ShinyMinds/Setup/Run All Steps")]
+        public static void RunAll()
+        {
+            Mission01Builder.Build();
+            MissionUIBuilder.Build();
+            BuildSystemPrefab();
+            MissionAnimatorBuilder.ConfigureRigs();
+            MissionAnimatorBuilder.BuildControllers();
+            MissionCharacterBuilder.BuildStranger();
+            WireScene();
+
+            Debug.Log("Setup complete. Save the scene (Ctrl+S), then press Play.");
         }
 
         // ------------------------------------------------------------------ helpers
@@ -221,9 +237,6 @@ namespace ShinyMinds.Missions.EditorTools
         {
             TryWireActor("Teacher", "teacher", layer, startInactive: false);
             TryWireActor("Mother", "mother", layer, startInactive: true);
-
-            if (GameObject.Find("Stranger") == null)
-                Debug.LogWarning("No 'Stranger' object in the scene yet — see docs/mission_01_setup.md step 8.");
         }
 
         static void TryWireActor(string objectName, string actorKey, int layer, bool startInactive)
@@ -236,18 +249,34 @@ namespace ShinyMinds.Missions.EditorTools
             }
 
             var animator = go.GetComponent<Animator>();
+            if (animator == null) animator = go.AddComponent<Animator>();
+
+            // Teacher and Mother ship with no controller assigned at all.
+            if (animator.runtimeAnimatorController == null)
+            {
+                var controller = AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>(
+                    MissionAnimatorBuilder.MissionActorControllerPath);
+
+                if (controller != null)
+                {
+                    animator.runtimeAnimatorController = controller;
+                    animator.applyRootMotion = false;
+                    Debug.Log($"Assigned MissionActorAnimator to '{objectName}'.");
+                }
+                else
+                {
+                    Debug.LogWarning($"'{objectName}' has no Animator controller and none was found — run 'Setup/4. Build Animator Controllers'.");
+                }
+            }
 
             var mover = GetOrAdd<ActorMover>(go);
-            Wire(mover, ("animator", animator));
+            Wire(mover, ("animator", animator), ("walkAnimValue", 2f), ("runAnimValue", 6f));
             if (layer >= 0) Wire(mover, ("groundMask", (LayerMask)~(1 << layer)));
 
             var actor = GetOrAdd<MissionActor>(go);
             Wire(actor, ("actorKey", actorKey), ("animator", animator), ("mover", mover));
 
             if (layer >= 0) go.layer = layer;
-
-            if (animator == null || animator.runtimeAnimatorController == null)
-                Debug.LogWarning($"'{objectName}' has no Animator controller — it cannot walk or emote until you assign MissionActorAnimator (setup guide step 7).");
 
             if (startInactive && go.activeSelf)
             {
@@ -256,7 +285,7 @@ namespace ShinyMinds.Missions.EditorTools
             }
         }
 
-        static void EnsureStaging(GameObject player, GameObject system)
+        static Transform EnsureStaging(GameObject player)
         {
             var existing = Object.FindAnyObjectByType<MissionStagingRoot>();
             GameObject staging;
@@ -339,6 +368,8 @@ namespace ShinyMinds.Missions.EditorTools
 
             Debug.Log($"Staging ready: {created} marker(s) created, {existingKeys.Count} already present. " +
                       "Positions are rough — drag them in the Scene view.");
+
+            return staging.transform;
         }
 
         static void FixCameraCollision(int layer)

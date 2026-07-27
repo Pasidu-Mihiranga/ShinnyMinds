@@ -3,39 +3,41 @@
 All the C# is written and compiles. This is the Editor work that cannot be done from
 outside Unity.
 
-## Quick start — four menu clicks
+## Quick start — one menu click
 
-Open `SampleScene`, then run these in order:
-
-| # | Menu | Builds |
-|---|---|---|
-| 1 | **ShinyMinds ▸ Build Mission 01 (The Road Home)** | the mission asset — 55 nodes, 3 branches, 3 endings |
-| 2 | **ShinyMinds ▸ Setup ▸ 1. Build Mission UI Prefab** | `MissionUI.prefab` — ~25 objects, fully wired |
-| 3 | **ShinyMinds ▸ Setup ▸ 2. Build Mission System Prefab** | `MissionSystem.prefab` — runner, cutscene camera, sfx, UI |
-| 4 | **ShinyMinds ▸ Setup ▸ 3. Wire Open Scene** | player components, `CameraIgnore` layer, staging root, all 25 markers |
+Open `SampleScene`, then run **ShinyMinds ▸ Setup ▸ Run All Steps**.
 
 Then **save the scene (Ctrl+S)** and press **Play**.
 
-That is enough to play the whole story: intro, free-roam walk, the stranger encounter, the
-A/B/C decision with a live mouse cursor, all three branches, and the ending card with
-Retry. Step 4 places markers at rough positions relative to the player — the story runs,
-but the staging won't look right until you drag them (step 9).
+That runs the whole pipeline in dependency order:
 
-All four are **idempotent** — re-running reuses what exists instead of duplicating it, so
-it is safe to run again after you move things around.
+| Step | Menu | Builds |
+|---|---|---|
+| — | **ShinyMinds ▸ Build Mission 01** | the mission asset — 55 nodes, 3 branches, 3 endings |
+| 1 | **Setup ▸ 1. Build Mission UI Prefab** | `MissionUI.prefab` — ~25 objects, every field wired |
+| 2 | **Setup ▸ 2. Build Mission System Prefab** | `MissionSystem.prefab` — runner, cutscene camera, sfx, UI |
+| 3 | **Setup ▸ 3. Configure Character Rigs** | Humanoid on Teacher / Mother / Ch29_nonPBR; looping on the cycle clips |
+| 4 | **Setup ▸ 4. Build Animator Controllers** | `MissionActorAnimator.controller`; adds Fear/Sad/Sit/Laugh to `PlayerAnimator` |
+| 5 | **Setup ▸ 5. Build Stranger Prefab** | `Stranger.prefab` from the unused Ch29_nonPBR |
+| 6 | **Setup ▸ 6. Wire Open Scene** | player components, `CameraIgnore` layer, staging root, 25 markers, the Stranger |
 
-### What the quick start does *not* do
+You can also run them individually if you want to see each result. **Order matters** —
+step 3 re-imports FBX rigs, and a rig re-import can drop component overrides on scene
+instances, which is why scene wiring is last. If you change a rig later, run step 6 again.
 
-- **Animator states** (step 7). `Teacher` and `Mother` have no animator controller at all,
-  so they cannot walk or emote yet, and the `Fear` / `Sad` / `Laugh` triggers don't exist.
-  The mission logs a warning and carries on.
-- **The Stranger** (step 8). No stranger character exists in the scene yet, so his lines
-  play but nobody walks up.
-- **Audio and badge sprites** (step 10). The school bell and ending stingers are unassigned.
+Everything is **idempotent**: re-running reuses what exists rather than duplicating it,
+so it is safe to run again after you move things around.
 
-Steps 1–6 below are the manual equivalent of the quick start, kept as reference for when
-you want to understand or adjust what it built. **Steps 7–10 are still manual** and are
-what turn a working text adventure into the staged scene.
+### What you still have to do by hand
+
+- **Marker positions** (step 9). They are placed relative to the player, so the story runs
+  end to end immediately — but the staging won't *look* right until you drag them in the
+  Scene view. Each draws a labelled gizmo with a forward arrow.
+- **Audio and badge sprites** (step 10). The school bell, the ending stingers and the three
+  ending badges are unassigned. Every action tolerates a null clip, so nothing breaks.
+
+Steps 1–10 below are the manual equivalent, kept as reference for understanding or
+adjusting what the builders produced.
 
 ---
 
