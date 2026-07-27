@@ -1,10 +1,41 @@
 # Mission 01 — Unity Editor setup
 
 All the C# is written and compiles. This is the Editor work that cannot be done from
-outside Unity: prefabs, scene wiring, markers, animator states.
+outside Unity.
 
-Work through it in order. **Steps 1–6 get the story playable as text.** That is the
-milestone worth signing off before you spend time on staging (steps 7–10).
+## Quick start — four menu clicks
+
+Open `SampleScene`, then run these in order:
+
+| # | Menu | Builds |
+|---|---|---|
+| 1 | **ShinyMinds ▸ Build Mission 01 (The Road Home)** | the mission asset — 55 nodes, 3 branches, 3 endings |
+| 2 | **ShinyMinds ▸ Setup ▸ 1. Build Mission UI Prefab** | `MissionUI.prefab` — ~25 objects, fully wired |
+| 3 | **ShinyMinds ▸ Setup ▸ 2. Build Mission System Prefab** | `MissionSystem.prefab` — runner, cutscene camera, sfx, UI |
+| 4 | **ShinyMinds ▸ Setup ▸ 3. Wire Open Scene** | player components, `CameraIgnore` layer, staging root, all 25 markers |
+
+Then **save the scene (Ctrl+S)** and press **Play**.
+
+That is enough to play the whole story: intro, free-roam walk, the stranger encounter, the
+A/B/C decision with a live mouse cursor, all three branches, and the ending card with
+Retry. Step 4 places markers at rough positions relative to the player — the story runs,
+but the staging won't look right until you drag them (step 9).
+
+All four are **idempotent** — re-running reuses what exists instead of duplicating it, so
+it is safe to run again after you move things around.
+
+### What the quick start does *not* do
+
+- **Animator states** (step 7). `Teacher` and `Mother` have no animator controller at all,
+  so they cannot walk or emote yet, and the `Fear` / `Sad` / `Laugh` triggers don't exist.
+  The mission logs a warning and carries on.
+- **The Stranger** (step 8). No stranger character exists in the scene yet, so his lines
+  play but nobody walks up.
+- **Audio and badge sprites** (step 10). The school bell and ending stingers are unassigned.
+
+Steps 1–6 below are the manual equivalent of the quick start, kept as reference for when
+you want to understand or adjust what it built. **Steps 7–10 are still manual** and are
+what turn a working text adventure into the staged scene.
 
 ---
 

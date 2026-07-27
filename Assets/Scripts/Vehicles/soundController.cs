@@ -29,19 +29,20 @@ public class CarSoundController : MonoBehaviour
         // Engine sound
         if (distance < playDistance)
         {
-            if (!engineAudio.isPlaying)
+            if (engineAudio != null && !engineAudio.isPlaying)
             {
                 engineAudio.Play();
             }
 
-            // Horn logic
-            if (Time.time >= nextHornTime)
+            // Horn logic. Both Police cars carry only one AudioSource (engine), so
+            // they have no horn to sound - skip them rather than throw every frame.
+            if (hornAudio != null && Time.time >= nextHornTime)
             {
                 hornAudio.Play();
                 SetNextHornTime();
             }
         }
-        else
+        else if (engineAudio != null && engineAudio.isPlaying)
         {
             engineAudio.Stop();
         }
