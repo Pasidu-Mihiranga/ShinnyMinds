@@ -26,7 +26,17 @@ namespace ShinyMinds.Missions.Runtime
         Transform activeLookAt;
         bool hasControl;
 
+        Vector3 shakeOffset;
+        float shakeAmplitude;
+        float shakeRemaining;
+        float shakeDuration;
+        Coroutine pushRoutine;
+
         public bool HasControl => hasControl;
+        public float FieldOfView => cutsceneCamera != null ? cutsceneCamera.fieldOfView : 60f;
+        public float Aspect => cutsceneCamera != null && cutsceneCamera.aspect > 0.01f
+            ? cutsceneCamera.aspect
+            : (float)Screen.width / Mathf.Max(1, Screen.height);
 
         void Awake()
         {
@@ -44,16 +54,63 @@ namespace ShinyMinds.Missions.Runtime
 
         void LateUpdate()
         {
-            if (!hasControl || activeLookAt == null || cutsceneCamera == null)
+            if (!hasControl || cutsceneCamera == null)
                 return;
 
             // Keep tracking a walking actor after the blend finishes.
-            AimAt(activeLookAt);
+            if (activeLookAt != null)
+                AimAt(activeLookAt);
+
+            UpdateShake();
+        }
+
+        void UpdateShake()
+        {
+            // Applied as a delta so it composes with whatever moved the camera this frame.
+            if (shakeOffset != Vector3.zero)
+            {
+                cutsceneCamera.transform.position -= shakeOffset;
+                shakeOffset = Vector3.zero;
+            }
+
+            if (shakeRemaining <= 0f)
+                return;
+
+            shakeRemaining -= Time.deltaTime;
+
+            float falloff = shakeDuration > 0f ? Mathf.Clamp01(shakeRemaining / shakeDuration) : 0f;
+            float strength = shakeAmplitude * falloff * falloff;
+
+            shakeOffset = cutsceneCamera.transform.rotation * new Vector3(
+                (Mathf.PerlinNoise(Time.time * 22f, 0f) - 0.5f) * 2f * strength,
+                (Mathf.PerlinNoise(0f, Time.time * 22f) - 0.5f) * 2f * strength,
+                0f);
+
+            cutsceneCamera.transform.position += shakeOffset;
+        }
+
+        public void Shake(float amplitude, float duration)
+        {
+            if (amplitude <= 0f || duration <= 0f)
+                return;
+
+            shakeAmplitude = amplitude;
+            shakeDuration = duration;
+            shakeRemaining = duration;
         }
 
         public IEnumerator ShotTo(Transform marker, float blendSeconds, Transform lookAt, bool letterbox)
         {
-            if (marker == null || cutsceneCamera == null)
+            if (marker == null)
+                yield break;
+
+            yield return ShotToPose(marker.position, marker.rotation, blendSeconds, lookAt, letterbox);
+        }
+
+        public IEnumerator ShotToPose(Vector3 position, Quaternion rotation, float blendSeconds,
+                                      Transform lookAt, bool letterbox)
+        {
+            if (cutsceneCamera == null)
                 yield break;
 
             TakeOver();
@@ -66,7 +123,7 @@ namespace ShinyMinds.Missions.Runtime
 
             if (blendSeconds <= 0f)
             {
-                cam.SetPositionAndRotation(marker.position, marker.rotation);
+                cam.SetPositionAndRotation(position, rotation);
                 if (lookAt != null) AimAt(lookAt);
                 yield break;
             }
@@ -80,18 +137,59 @@ namespace ShinyMinds.Missions.Runtime
                 t += Time.deltaTime / blendSeconds;
                 float e = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(t));
 
-                cam.position = Vector3.Lerp(fromPos, marker.position, e);
+                cam.position = Vector3.Lerp(fromPos, position, e);
 
+                // Re-aim every frame when tracking, so the shot follows a walking actor
+                // instead of blending to a pose that is already stale.
                 Quaternion targetRot = lookAt != null
                     ? Quaternion.LookRotation((lookAt.position + lookAtOffset) - cam.position, Vector3.up)
-                    : marker.rotation;
+                    : rotation;
 
                 cam.rotation = Quaternion.Slerp(fromRot, targetRot, e);
                 yield return null;
             }
 
-            cam.position = marker.position;
-            if (lookAt != null) AimAt(lookAt); else cam.rotation = marker.rotation;
+            cam.position = position;
+            if (lookAt != null) AimAt(lookAt); else cam.rotation = rotation;
+        }
+
+        public void BeginPushIn(float distance, float seconds)
+        {
+            if (cutsceneCamera == null || Mathf.Approximately(distance, 0f))
+                return;
+
+            if (pushRoutine != null) StopCoroutine(pushRoutine);
+            pushRoutine = StartCoroutine(PushIn(distance, seconds));
+        }
+
+        public IEnumerator PushIn(float distance, float seconds)
+        {
+            if (cutsceneCamera == null || Mathf.Approximately(distance, 0f))
+                yield break;
+
+            TakeOver();
+
+            Transform cam = cutsceneCamera.transform;
+            Vector3 from = cam.position;
+            Vector3 to = from + cam.forward * distance;
+
+            if (seconds <= 0f)
+            {
+                cam.position = to;
+                yield break;
+            }
+
+            float t = 0f;
+            while (t < 1f)
+            {
+                t += Time.deltaTime / seconds;
+                // Ease out only: a dolly should start immediately and settle, not creep in.
+                float e = 1f - Mathf.Pow(1f - Mathf.Clamp01(t), 3f);
+                cam.position = Vector3.Lerp(from, to, e);
+                yield return null;
+            }
+
+            cam.position = to;
         }
 
         public IEnumerator Release(float blendSeconds)
@@ -135,6 +233,14 @@ namespace ShinyMinds.Missions.Runtime
         {
             activeLookAt = null;
             hasControl = false;
+            shakeRemaining = 0f;
+            shakeOffset = Vector3.zero;
+
+            if (pushRoutine != null)
+            {
+                StopCoroutine(pushRoutine);
+                pushRoutine = null;
+            }
 
             if (cutsceneCamera != null) cutsceneCamera.enabled = false;
 

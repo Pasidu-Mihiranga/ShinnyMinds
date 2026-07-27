@@ -54,7 +54,33 @@ namespace ShinyMinds.Missions.Data
     public interface IMissionCamera
     {
         bool HasControl { get; }
+
+        /// <summary>Vertical field of view, needed to compute framing distances.</summary>
+        float FieldOfView { get; }
+        float Aspect { get; }
+
         IEnumerator ShotTo(Transform marker, float blendSeconds, Transform lookAt, bool letterbox);
+
+        /// <summary>
+        /// Move to a pose computed at runtime rather than authored on a marker. This is
+        /// what lets a shot frame the actors wherever they actually ended up.
+        /// </summary>
+        IEnumerator ShotToPose(Vector3 position, Quaternion rotation, float blendSeconds,
+                               Transform lookAt, bool letterbox);
+
+        /// <summary>Dolly along the view axis. Positive pushes in.</summary>
+        IEnumerator PushIn(float distance, float seconds);
+
+        /// <summary>
+        /// Start a dolly and return immediately, so the move continues underneath the
+        /// dialogue that follows. A cutscene node joins its parallel actions before it
+        /// ends, so a blocking push would stall the line it is meant to underscore.
+        /// </summary>
+        void BeginPushIn(float distance, float seconds);
+
+        /// <summary>Additive positional shake, applied after the shot pose.</summary>
+        void Shake(float amplitude, float duration);
+
         IEnumerator Release(float blendSeconds);
         void HardRelease();
     }

@@ -35,13 +35,26 @@ namespace ShinyMinds.Missions.Runtime
         [SerializeField] float groundRayLength = 8f;
         [SerializeField] LayerMask groundMask = ~0;
 
+        [Header("Root motion")]
+        [Tooltip("Let the animation drive travel instead of translating the transform. " +
+                 "Feet plant properly and turns carry weight, at the cost of exact arrival " +
+                 "timing. Requires looping locomotion clips with root motion baked in.")]
+        [SerializeField] bool useRootMotion = false;
+        [Tooltip("Give up and snap to the target after this long, so a clip with too little " +
+                 "root translation cannot stall a cutscene. 0 disables.")]
+        [SerializeField] float rootMotionTimeout = 20f;
+
         [Header("Optional")]
         [Tooltip("Assign for GIRL 1. A CharacterController ignores direct transform writes.")]
         [SerializeField] CharacterController characterController;
         [Tooltip("Downward push applied through the CharacterController so it stays grounded.")]
         [SerializeField] float ccGravity = 4f;
 
+        bool rootMotionActive;
+        bool cachedApplyRootMotion;
+
         public bool IsMoving { get; private set; }
+        public bool UseRootMotion => useRootMotion;
 
         /// <summary>
         /// Mixamo clips are authored for a roughly 1-unit rig with root motion off, but
@@ -64,8 +77,10 @@ namespace ShinyMinds.Missions.Runtime
             float speed = baseSpeed * ScaleFactor;
 
             SetAnim(run ? runAnimValue : walkAnimValue, backwards);
+            BeginRootMotion();
 
             float sqrArrive = arriveDistance * arriveDistance;
+            float elapsed = 0f;
 
             while (true)
             {
@@ -88,27 +103,98 @@ namespace ShinyMinds.Missions.Runtime
                         turnDegreesPerSecond * Time.deltaTime);
                 }
 
-                Vector3 delta = dir * speed * Time.deltaTime;
-
-                // Never overshoot on a long frame.
-                if (delta.sqrMagnitude > toTarget.sqrMagnitude)
-                    delta = toTarget;
-
-                if (characterController != null && characterController.enabled)
+                // Under root motion the clip supplies the translation; we only steer.
+                // See OnAnimatorMove.
+                if (!rootMotionActive)
                 {
-                    characterController.Move(delta + Vector3.down * ccGravity * Time.deltaTime);
+                    Vector3 delta = dir * speed * Time.deltaTime;
+
+                    // Never overshoot on a long frame.
+                    if (delta.sqrMagnitude > toTarget.sqrMagnitude)
+                        delta = toTarget;
+
+                    if (characterController != null && characterController.enabled)
+                    {
+                        characterController.Move(delta + Vector3.down * ccGravity * Time.deltaTime);
+                    }
+                    else
+                    {
+                        transform.position += delta;
+                        if (stickToGround) SnapDown();
+                    }
                 }
-                else
+
+                elapsed += Time.deltaTime;
+                if (rootMotionActive && rootMotionTimeout > 0f && elapsed >= rootMotionTimeout)
                 {
-                    transform.position += delta;
-                    if (stickToGround) SnapDown();
+                    Debug.LogWarning($"ActorMover on '{name}': root motion did not reach the target in " +
+                                     $"{rootMotionTimeout}s. Snapping. Check the clip actually has baked " +
+                                     "root translation.", this);
+                    SnapTo(flatTarget);
+                    break;
                 }
 
                 yield return null;
             }
 
+            EndRootMotion();
             SetAnim(0f, false);
             IsMoving = false;
+        }
+
+        // ------------------------------------------------------------- root motion
+
+        void BeginRootMotion()
+        {
+            if (!useRootMotion || animator == null || rootMotionActive)
+                return;
+
+            // PlayerController forces applyRootMotion off in Start(), so it has to be
+            // turned on for the cutscene and put back afterwards.
+            cachedApplyRootMotion = animator.applyRootMotion;
+            animator.applyRootMotion = true;
+            rootMotionActive = true;
+        }
+
+        void EndRootMotion()
+        {
+            if (!rootMotionActive || animator == null)
+                return;
+
+            animator.applyRootMotion = cachedApplyRootMotion;
+            rootMotionActive = false;
+        }
+
+        void OnAnimatorMove()
+        {
+            if (!rootMotionActive || animator == null)
+                return;
+
+            Vector3 delta = animator.deltaPosition;
+
+            if (characterController != null && characterController.enabled)
+            {
+                characterController.Move(delta + Vector3.down * ccGravity * Time.deltaTime);
+            }
+            else
+            {
+                transform.position += delta;
+                if (stickToGround) SnapDown();
+            }
+
+            // Rotation stays under MoveTo's control so the actor still steers toward the
+            // marker; the clip only contributes translation.
+        }
+
+        void SnapTo(Vector3 position)
+        {
+            bool hadController = characterController != null && characterController.enabled;
+            if (hadController) characterController.enabled = false;
+
+            transform.position = position;
+            if (stickToGround) SnapDown();
+
+            if (hadController) characterController.enabled = true;
         }
 
         public IEnumerator FaceTowards(Vector3 worldPoint, float seconds)
@@ -161,6 +247,7 @@ namespace ShinyMinds.Missions.Runtime
         /// </summary>
         public void Stop()
         {
+            EndRootMotion();
             SetAnim(0f, false);
             SetTurn(false, false);
             IsMoving = false;

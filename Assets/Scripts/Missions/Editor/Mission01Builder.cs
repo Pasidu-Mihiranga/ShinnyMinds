@@ -161,14 +161,18 @@ namespace ShinyMinds.Missions.EditorTools
                 Fade(true, 0f),
                 Letterbox(true, 0f),
                 Teleport("aisha", "m_aisha_start"),
-                Shot("m_cam_gate", 0f),
+                Shot("m_cam_gate", 0f),             // authored establishing pose
                 Parallel(Sound(null)),              // school bell — assign the clip in the Inspector
                 Fade(false, 1.5f),
                 Wait(1.0f)));
 
+            // Lines are kept to roughly 42 characters a line, two lines maximum. Long
+            // single lines are the main readability failure for a young reader.
             n.Add(Line("s1_narr", "narrator",
-                "A warm Tuesday afternoon. The final school bell rings, and children pour " +
-                "out of the gates.", "s1_mother"));
+                "A warm Tuesday afternoon.\nThe final school bell rings.", "s1_narr2"));
+
+            n.Add(Line("s1_narr2", "narrator",
+                "Children pour out of the gates,\nlaughing and talking.", "s1_mother"));
 
             n.Add(Line("s1_mother", "mother_memory",
                 "Come straight home after school, Aisha.", "s1_aisha"));
@@ -199,13 +203,16 @@ namespace ShinyMinds.Missions.EditorTools
                 Letterbox(true, 0.4f),
                 SetActive("stranger", true),
                 Teleport("stranger", "m_stranger_spawn"),
-                Shot("m_cam_meeting", 1.0f)));
+                // Open wide. An open street reads as safe, which is the point — the
+                // danger here never looks like danger.
+                Framed(ShotType.Wide, 1.0f, null, "aisha", "stranger")));
 
             n.Add(Line("s2_call", "stranger", "Hey! Aisha!", "s2_turn"));
 
             n.Add(Cutscene("s2_turn", "s2_confirm",
                 Parallel(Move("stranger", "m_stranger_call", faceActor: "aisha")),
-                Face("aisha", "stranger", 0.6f)));
+                Face("aisha", "stranger", 0.6f),
+                Framed(ShotType.TwoShot, 1.2f, "stranger", "aisha", "stranger")));
 
             n.Add(Line("s2_confirm", "stranger", "You are Aisha, right?", "s2_yes"));
             n.Add(Line("s2_yes", "aisha", "Yes...", "s2_think1"));
@@ -215,22 +222,29 @@ namespace ShinyMinds.Missions.EditorTools
             n.Add(Line("s2_thought_so", "stranger", "I thought so.", "s2_like_mother"));
             n.Add(Line("s2_like_mother", "stranger", "You look just like your mother.", "s2_closer"));
 
+            // He steps closer. Tighten and drop the camera: closer framing reads as
+            // pressure without anything overtly frightening happening on screen.
             n.Add(Cutscene("s2_closer", "s2_knows",
                 Move("stranger", "m_stranger_close", faceActor: "aisha"),
-                Shot("m_cam_close", 0.8f)));
+                Framed(ShotType.OverShoulder, 0.9f, null, "aisha", "stranger", height: -0.1f),
+                Push(0.35f, 3.5f, shake: 0.012f)));      // runs on under the next lines
 
             n.Add(Line("s2_knows", "stranger", "I know your mother, Lia.", "s2_work"));
             n.Add(Line("s2_work", "stranger", "We work together.", "s2_surprised"));
 
             n.Add(Cutscene("s2_surprised", "s2_offer",
+                Framed(ShotType.CloseUp, 0.7f, null, "aisha"),
                 Emote("aisha", "Fear", 1.0f)));
 
             n.Add(Line("s2_offer", "stranger",
-                "Actually, she asked me to help you get home today.", "s2_hesitate"));
+                "She asked me to help you\nget home today.", "s2_hesitate"));
 
+            // Hold on her face slightly longer than is comfortable. The pause before the
+            // choice is where the lesson actually lands.
             n.Add(Cutscene("s2_hesitate", "s2_think2",
                 Emote("aisha", "Sad", 0.8f),
-                Shot("m_cam_choice", 1.0f)));
+                Framed(ShotType.CloseUp, 1.0f, "aisha", "aisha", angle: 22f),
+                Push(0.25f, 4f)));                       // holds under her thought
 
             n.Add(Thought("s2_think2", "aisha", "I don't know this person.", "s2_choice"));
 
@@ -286,14 +300,16 @@ namespace ShinyMinds.Missions.EditorTools
                 SetActive("stranger", false),
                 SetActive("mother", true),
                 Teleport("mother", "m_mother_door"),
-                Shot("m_cam_home_door", 0f),
+                Framed(ShotType.TwoShot, 0f, null, "aisha", "mother"),
                 Fade(false, 1.0f)));
 
             n.Add(Line("b7_youre_home", "mother", "You're home!", "b8_tells"));
 
             n.Add(Line("b8_tells", "narrator",
-                "Aisha tells her mother what happened. Her mother's expression becomes serious.",
-                "b9_safer"));
+                "Aisha tells her mother\nwhat happened.", "b8_serious"));
+
+            n.Add(Line("b8_serious", "narrator",
+                "Her mother's expression\nbecomes serious.", "b9_safer"));
 
             n.Add(Line("b9_safer", "mother", "You made a safer choice by walking away.", "b10_better"));
             n.Add(Line("b10_better", "mother", "But there was an even better choice.", "b11_therewas"));
@@ -307,16 +323,18 @@ namespace ShinyMinds.Missions.EditorTools
         static void BuildPathC(List<MissionNode> n)
         {
             n.Add(Cutscene("c1_look", "c2_sees",
-                Shot("m_cam_choice", 0.8f),
-                Face("aisha", null, 0.6f, markerKey: "m_teacher_stand")));
+                Framed(ShotType.Wide, 0.8f, null, "aisha", "teacher"),
+                Face("aisha", "teacher", 0.6f)));
 
             n.Add(Line("c2_sees", "narrator",
-                "Aisha decides not to handle this alone. She looks around, and sees the teacher " +
-                "of her class nearby.", "c3_walk"));
+                "Aisha decides not to handle\nthis alone.", "c2_sees2"));
+
+            n.Add(Line("c2_sees2", "narrator",
+                "She looks around, and sees\nthe teacher of her class.", "c3_walk"));
 
             n.Add(Cutscene("c3_walk", "c4_ask",
-                Move("aisha", "m_aisha_at_teacher", run: true, faceActor: "teacher"),
-                Shot("m_cam_teacher", 1.0f)));
+                Parallel(Framed(ShotType.TwoShot, 1.4f, "aisha", "aisha", "teacher")),
+                Move("aisha", "m_aisha_at_teacher", run: true, faceActor: "teacher")));
 
             n.Add(Line("c4_ask", "aisha",
                 "Teacher, this man says he knows my mother.", "c5_hello"));
@@ -334,15 +352,16 @@ namespace ShinyMinds.Missions.EditorTools
                 SetActive("stranger", false)));
 
             n.Add(Line("c9_calls", "narrator",
-                "The teacher stays with Aisha and calls her mother.", "c10_arrive"));
+                "The teacher stays with Aisha\nand calls her mother.", "c10_arrive"));
 
             n.Add(Cutscene("c10_arrive", "c11_right_thing",
                 Fade(true, 0.8f, hold: 0.4f),
                 SetActive("mother", true),
                 Teleport("mother", "m_mother_arrive_spawn"),
-                Shot("m_cam_reunion", 0f),
+                Framed(ShotType.Wide, 0f, null, "aisha", "mother"),
                 Fade(false, 0.8f),
-                Move("mother", "m_mother_arrive", run: true, faceActor: "aisha")));
+                Move("mother", "m_mother_arrive", run: true, faceActor: "aisha"),
+                Framed(ShotType.TwoShot, 1.0f, null, "aisha", "mother")));
 
             n.Add(Line("c11_right_thing", "mother", "You did exactly the right thing.", "c12_trusted"));
 
@@ -413,6 +432,52 @@ namespace ShinyMinds.Missions.EditorTools
 
         static SetActorActiveAction SetActive(string actor, bool active) =>
             new SetActorActiveAction { actorKey = actor, active = active };
+
+        /// <summary>
+        /// A shot computed from where the actors actually are. Preferred over Shot() for
+        /// anything covering a conversation — a fixed marker cannot know that an actor
+        /// stopped short or approached from a different angle.
+        /// </summary>
+        static FramedShotAction Framed(ShotType type, float blend, string trackActor,
+                                       params string[] subjects) =>
+            Framed(type, blend, trackActor, 35f, 0.25f, subjects);
+
+        static FramedShotAction Framed(ShotType type, float blend, string trackActor,
+                                       string subjectA, string subjectB,
+                                       float angle = 35f, float height = 0.25f) =>
+            Framed(type, blend, trackActor, angle, height, subjectA, subjectB);
+
+        static FramedShotAction Framed(ShotType type, float blend, string trackActor,
+                                       string subject, float angle) =>
+            Framed(type, blend, trackActor, angle, 0.25f, subject);
+
+        static FramedShotAction Framed(ShotType type, float blend, string trackActor,
+                                       float angle, float height, params string[] subjects)
+        {
+            int ignore = LayerMask.NameToLayer("CameraIgnore");
+
+            return new FramedShotAction
+            {
+                subjectActorKeys = new List<string>(subjects),
+                shotType = type,
+                blendSeconds = blend,
+                trackActorKey = trackActor,
+                angleDegrees = angle,
+                cameraHeightBias = height,
+                letterbox = true,
+                // The actors must never count as obstructions between camera and subject.
+                obstructionMask = ignore >= 0 ? ~(1 << ignore) : ~0,
+            };
+        }
+
+        static CameraMoveAction Push(float distance, float seconds, float shake = 0f) =>
+            new CameraMoveAction
+            {
+                pushInDistance = distance,
+                seconds = seconds,
+                shakeAmplitude = shake,
+                shakeDuration = 0.5f,
+            };
 
         static CameraShotAction Shot(string marker, float blend, string lookAtActor = null) =>
             new CameraShotAction

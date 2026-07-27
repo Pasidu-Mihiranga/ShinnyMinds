@@ -1,6 +1,7 @@
 using ShinyMinds.Missions.UI;
 using TMPro;
 using UnityEditor;
+using UnityEngine.Rendering;
 using UnityEngine;
 using UnityEngine.UI;
 using static ShinyMinds.Missions.EditorTools.MissionEditorUtil;
@@ -208,6 +209,18 @@ namespace ShinyMinds.Missions.EditorTools
 
             WireList(view, "choiceButtons", buttons[0], buttons[1], buttons[2]);
 
+            // Legibility pass: the story text carries the lesson, so it gets the shadowed
+            // material. Buttons and HUD sit on their own opaque plates and don't need it.
+            Material subtitle = EnsureSubtitleMaterial();
+            if (subtitle != null)
+            {
+                lineTmp.fontSharedMaterial = subtitle;
+                thoughtTmp.fontSharedMaterial = subtitle;
+                speakerTmp.fontSharedMaterial = subtitle;
+                endTitleTmp.fontSharedMaterial = subtitle;
+                lessonTmp.fontSharedMaterial = subtitle;
+            }
+
             // Panels start hidden; MissionUIView.Awake() also calls HideAll() at runtime.
             dialoguePanel.SetActive(false);
             thoughtPanel.SetActive(false);
@@ -226,6 +239,47 @@ namespace ShinyMinds.Missions.EditorTools
             }
 
             return prefab;
+        }
+
+        const string SubtitleMaterialPath =
+            "Assets/TextMesh Pro/Resources/Fonts & Materials/Subtitle SDF.mat";
+
+        /// <summary>
+        /// A copy of the default font material with an underlay (soft drop shadow) enabled.
+        ///
+        /// Subtitles have to survive a bright sky and a dark interior in the same scene,
+        /// and a backing plate alone cannot do that once the camera starts cutting. This
+        /// is a separate material rather than an edit to the shared LiberationSans
+        /// material, which would restyle every TMP object in the project including the
+        /// Groq NPC panels.
+        /// </summary>
+        static Material EnsureSubtitleMaterial()
+        {
+            var existing = AssetDatabase.LoadAssetAtPath<Material>(SubtitleMaterialPath);
+            if (existing != null) return existing;
+
+            TMP_FontAsset font = TMP_Settings.defaultFontAsset;
+            if (font == null || font.material == null)
+            {
+                Debug.LogWarning("No default TMP font asset; subtitles will use the plain material.");
+                return null;
+            }
+
+            var mat = new Material(font.material) { name = "Subtitle SDF" };
+
+            mat.EnableKeyword("UNDERLAY_ON");
+            mat.SetColor("_UnderlayColor", new Color(0f, 0f, 0f, 0.9f));
+            mat.SetFloat("_UnderlayOffsetX", 0.4f);
+            mat.SetFloat("_UnderlayOffsetY", -0.4f);
+            mat.SetFloat("_UnderlayDilate", 0.2f);
+            mat.SetFloat("_UnderlaySoftness", 0.25f);
+
+            EnsureFolder(SubtitleMaterialPath);
+            AssetDatabase.CreateAsset(mat, SubtitleMaterialPath);
+            AssetDatabase.SaveAssets();
+
+            Debug.Log($"Created {SubtitleMaterialPath}");
+            return mat;
         }
 
         /// <summary>

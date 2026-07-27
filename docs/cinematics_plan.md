@@ -1,13 +1,34 @@
 # Cinematics plan — readable subtitles, framed shots, animated cutscenes
 
+> **Status: items 1, 2A and 3A/3C are implemented.** Rebuild with
+> **ShinyMinds ▸ Setup ▸ Run All Steps** (or just **Build Mission 01** +
+> **Setup ▸ 1** if the scene is already wired). What remains is 3B (Timeline beats)
+> and 2B (Cinemachine), both of which are deliberately deferred — see below.
+
 Three problems, in the order they should be fixed. They are independent, and each is
 shippable on its own.
 
-| # | Problem | Root cause | Effort |
+| # | Problem | Root cause | Status |
 |---|---|---|---|
-| 1 | Subtitles unreadable | Canvas shader channels — **fixed** | done |
-| 2 | Shots don't frame the event | Fixed camera poses can't know where the actors are | ~half a day |
-| 3 | Cutscenes feel like lerped puppets | Nothing is keyframed | 1–3 days, staged |
+| 1 | Subtitles unreadable | Canvas shader channels | **done** |
+| 2 | Shots don't frame the event | Fixed camera poses can't know where the actors are | **2A done**, 2B deferred |
+| 3 | Cutscenes feel like lerped puppets | Nothing is keyframed | **3A + 3C done**, 3B deferred |
+
+## What shipped
+
+- `FramedShotAction` — `TwoShot` / `OverShoulder` / `CloseUp` / `Wide`, computed from the
+  actors' live positions, with a spherecast that pulls the camera in when scenery blocks
+  the view.
+- `CameraMoveAction` — push-in dolly with optional shake. **Non-blocking by default**, so
+  a slow push keeps running underneath the dialogue it exists to underscore.
+- `PlayAnimationAction` — plays a named animator state, optionally waiting for it to end,
+  with a timeout so a bad state name cannot soft-lock a mission.
+- `ActorMover.useRootMotion` — the clip drives travel instead of the transform, so feet
+  plant instead of skating.
+- `Subtitle SDF.mat` — the default font material with an underlay, applied to story text
+  only.
+- Mission 01 rewritten: the conversation beats now use framed shots, and every line is
+  wrapped to roughly 42 characters over at most two lines.
 
 ---
 
