@@ -1,0 +1,1171 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1264f43fc13404c4fae04fc1f8a44fca, type: 3}
+  m_Name: Mission01_TheRoadHome
+  m_EditorClassIdentifier: Assembly-CSharp::ShinyMinds.Missions.Data.MissionData
+  missionId: mission_01_road_home
+  title: The Road Home
+  objective: Walk home from school.
+  startNodeId: s1_open
+  nodes:
+  - id: s1_open
+    kind: 2
+    speakerKey: 
+    text: 
+    autoAdvanceSeconds: 0
+    speakAloud: 0
+    actions:
+    - rid: 4223013682560631016
+    - rid: 4223013682560631017
+    - rid: 4223013682560631018
+    - rid: 4223013682560631019
+    - rid: 4223013682560631020
+    - rid: 4223013682560631021
+    - rid: 4223013682560631022
+    - rid: 4223013682560631023
+    prompt: 
+    choices: []
+    endingId: 
+    nextId: s1_narr
+  - id: s1_narr
+    kind: 0
+    speakerKey: narrator
+    text: A warm Tuesday afternoon. The final school bell rings, and children pour
+      out of the gates.
+    autoAdvanceSeconds: 0
+    speakAloud: 0
+    actions: []
+    prompt: 
+    choices: []
+    endingId: 
+    nextId: s1_mother
+  - id: s1_mother
+    kind: 0
+    speakerKey: mother_memory
+    text: Come straight home after school, Aisha.
+    autoAdvanceSeconds: 0
+    speakAloud: 0
+    actions: []
+    prompt: 
+    choices: []
+    endingId: 
+    nextId: s1_aisha
+  - id: s1_aisha
+    kind: 0
+    speakerKey: aisha
+    text: Okay, Ammi.
+    autoAdvanceSeconds: 0
+    speakAloud: 0
+    actions: []
+    prompt: 
+    choices: []
+    endingId: 
+    nextId: s1_setoff
+  - id: s1_setoff
+    kind: 2
+    speakerKey: 
+    text: 
+    autoAdvanceSeconds: 0
+    speakAloud: 0
+    actions:
+    - rid: 4223013682560631024
+    - rid: 4223013682560631025
+    - rid: 4223013682560631026
+    - rid: 4223013682560631027
+    - rid: 4223013682560631028
+    - rid: 4223013682560631029
+    prompt: 
+    choices: []
+    endingId: 
+    nextId: s1_walk
+  - id: s1_walk
+    kind: 2
+    speakerKey: 
+    text: 
+    autoAdvanceSeconds: 0
+    speakAloud: 0
+    actions:
+    - rid: 4223013682560631030
+    prompt: 
+    choices: []
+    endingId: 
+    nextId: s2_stop
+  - id: s2_stop
+    kind: 2
+    speakerKey: 
+    text: 
+    autoAdvanceSeconds: 0
+    speakAloud: 0
+    actions:
+    - rid: 4223013682560631031
+    - rid: 4223013682560631032
+    - rid: 4223013682560631033
+    - rid: 4223013682560631034
+    - rid: 4223013682560631035
+    - rid: 4223013682560631036
+    prompt: 
+    choices: []
+    endingId: 
+    nextId: s2_call
+  - id: s2_call
+    kind: 0
+    speakerKey: stranger
+    text: Hey! Aisha!
+    autoAdvanceSeconds: 0
+    speakAloud: 0
+    actions: []
+    prompt: 
+    choices: []
+    endingId: 
+    nextId: s2_turn
+  - id: s2_turn
+    kind: 2
+    speakerKey: 
+    text: 
+    autoAdvanceSeconds: 0
+    speakAloud: 0
+    actions:
+    - rid: 4223013682560631037
+    - rid: 4223013682560631038
+    prompt: 
+    choices: []
+    endingId: 
+    nextId: s2_confirm
+  - id: s2_confirm
+    kind: 0
+    speakerKey: stranger
+    text: You are Aisha, right?
+    autoAdvanceSeconds: 0
+    speakAloud: 0
+    actions: []
+    prompt: 
+    choices: []
+    endingId: 
+    nextId: s2_yes
+  - id: s2_yes
+    kind: 0
+    speakerKey: aisha
+    text: Yes...
+    autoAdvanceSeconds: 0
+    speakAloud: 0
+    actions: []
+    prompt: 
+    choices: []
+    endingId: 
+    nextId: s2_think1
+  - id: s2_think1
+    kind: 1
+    speakerKey: aisha
+    text: How does he know my name?
+    autoAdvanceSeconds: 0
+    speakAloud: 0
+    actions: []
+    prompt: 
+    choices: []
+    endingId: 
+    nextId: s2_thought_so
+  - id: s2_thought_so
+    kind: 0
+    speakerKey: stranger
+    text: I thought so.
+    autoAdvanceSeconds: 0
+    speakAloud: 0
+    actions: []
+    prompt: 
+    choices: []
+    endingId: 
+    nextId: s2_like_mother
+  - id: s2_like_mother
+    kind: 0
+    speakerKey: stranger
+    text: You look just like your mother.
+    autoAdvanceSeconds: 0
+    speakAloud: 0
+    actions: []
+    prompt: 
+    choices: []
+    endingId: 
+    nextId: s2_closer
+  - id: s2_closer
+    kind: 2
+    speakerKey: 
+    text: 
+    autoAdvanceSeconds: 0
+    speakAloud: 0
+    actions:
+    - rid: 4223013682560631039
+    - rid: 4223013682560631040
+    prompt: 
+    choices: []
+    endingId: 
+    nextId: s2_knows
+  - id: s2_knows
+    kind: 0
+    speakerKey: stranger
+    text: I know your mother, Lia.
+    autoAdvanceSeconds: 0
+    speakAloud: 0
+    actions: []
+    prompt: 
+    choices: []
+    endingId: 
+    nextId: s2_work
+  - id: s2_work
+    kind: 0
+    speakerKey: stranger
+    text: We work together.
+    autoAdvanceSeconds: 0
+    speakAloud: 0
+    actions: []
+    prompt: 
+    choices: []
+    endingId: 
+    nextId: s2_surprised
+  - id: s2_surprised
+    kind: 2
+    speakerKey: 
+    text: 
+    autoAdvanceSeconds: 0
+    speakAloud: 0
+    actions:
+    - rid: 4223013682560631041
+    prompt: 
+    choices: []
+    endingId: 
+    nextId: s2_offer
+  - id: s2_offer
+    kind: 0
+    speakerKey: stranger
+    text: Actually, she asked me to help you get home today.
+    autoAdvanceSeconds: 0
+    speakAloud: 0
+    actions: []
+    prompt: 
+    choices: []
+    endingId: 
+    nextId: s2_hesitate
+  - id: s2_hesitate
+    kind: 2
+    speakerKey: 
+    text: 
+    autoAdvanceSeconds: 0
+    speakAloud: 0
+    actions:
+    - rid: 4223013682560631042
+    - rid: 4223013682560631043
+    prompt: 
+    choices: []
+    endingId: 
+    nextId: s2_think2
+  - id: s2_think2
+    kind: 1
+    speakerKey: aisha
+    text: I don't know this person.
+    autoAdvanceSeconds: 0
+    speakAloud: 0
+    actions: []
+    prompt: 
+    choices: []
+    endingId: 
+    nextId: s2_choice
+  - id: s2_choice
+    kind: 3
+    speakerKey: 
+    text: 
+    autoAdvanceSeconds: 0
+    speakAloud: 0
+    actions: []
+    prompt: What should Aisha do?
+    choices:
+    - label: Go with the stranger
+      nextId: a1_okay
+      tone: 0
+    - label: Walk away
+      nextId: b1_stepback
+      tone: 2
+    - label: Find a trusted adult
+      nextId: c1_look
+      tone: 3
+    endingId: 
+    nextId: 
+  - id: a1_okay
+    kind: 0
+    speakerKey: aisha
+    text: Okay.
+    autoAdvanceSeconds: 0
+    speakAloud: 0
+    actions: []
+    prompt: 
+    choices: []
+    endingId: 
+    nextId: a2_good
+  - id: a2_good
+    kind: 0
+    speakerKey: stranger
+    text: Good choice.
+    autoAdvanceSeconds: 0
+    speakAloud: 0
+    actions: []
+    prompt: 
+    choices: []
+    endingId: 
+    nextId: a3_walkoff
+  - id: a3_walkoff
+    kind: 2
+    speakerKey: 
+    text: 
+    autoAdvanceSeconds: 0
+    speakAloud: 0
+    actions:
+    - rid: 4223013682560631044
+    - rid: 4223013682560631045
+    - rid: 4223013682560631046
+    - rid: 4223013682560631047
+    prompt: 
+    choices: []
+    endingId: 
+    nextId: a4_end
+  - id: a4_end
+    kind: 4
+    speakerKey: 
+    text: 
+    autoAdvanceSeconds: 0
+    speakAloud: 0
+    actions: []
+    prompt: 
+    choices: []
+    endingId: ending_unsafe
+    nextId: 
+  - id: b1_stepback
+    kind: 2
+    speakerKey: 
+    text: 
+    autoAdvanceSeconds: 0
+    speakAloud: 0
+    actions:
+    - rid: 4223013682560631048
+    - rid: 4223013682560631049
+    prompt: 
+    choices: []
+    endingId: 
+    nextId: b2_nothanks
+  - id: b2_nothanks
+    kind: 0
+    speakerKey: aisha
+    text: No thank you.
+    autoAdvanceSeconds: 0
+    speakAloud: 0
+    actions: []
+    prompt: 
+    choices: []
+    endingId: 
+    nextId: b3_insist
+  - id: b3_insist
+    kind: 0
+    speakerKey: stranger
+    text: Your mother asked me to help.
+    autoAdvanceSeconds: 0
+    speakAloud: 0
+    actions: []
+    prompt: 
+    choices: []
+    endingId: 
+    nextId: b4_gohome
+  - id: b4_gohome
+    kind: 0
+    speakerKey: aisha
+    text: I need to go home.
+    autoAdvanceSeconds: 0
+    speakAloud: 0
+    actions: []
+    prompt: 
+    choices: []
+    endingId: 
+    nextId: b5_leave
+  - id: b5_leave
+    kind: 2
+    speakerKey: 
+    text: 
+    autoAdvanceSeconds: 0
+    speakAloud: 0
+    actions:
+    - rid: 4223013682560631050
+    - rid: 4223013682560631051
+    prompt: 
+    choices: []
+    endingId: 
+    nextId: b6_arrive
+  - id: b6_arrive
+    kind: 2
+    speakerKey: 
+    text: 
+    autoAdvanceSeconds: 0
+    speakAloud: 0
+    actions:
+    - rid: 4223013682560631052
+    - rid: 4223013682560631053
+    - rid: 4223013682560631054
+    - rid: 4223013682560631055
+    - rid: 4223013682560631056
+    - rid: 4223013682560631057
+    prompt: 
+    choices: []
+    endingId: 
+    nextId: b7_youre_home
+  - id: b7_youre_home
+    kind: 0
+    speakerKey: mother
+    text: You're home!
+    autoAdvanceSeconds: 0
+    speakAloud: 0
+    actions: []
+    prompt: 
+    choices: []
+    endingId: 
+    nextId: b8_tells
+  - id: b8_tells
+    kind: 0
+    speakerKey: narrator
+    text: Aisha tells her mother what happened. Her mother's expression becomes serious.
+    autoAdvanceSeconds: 0
+    speakAloud: 0
+    actions: []
+    prompt: 
+    choices: []
+    endingId: 
+    nextId: b9_safer
+  - id: b9_safer
+    kind: 0
+    speakerKey: mother
+    text: You made a safer choice by walking away.
+    autoAdvanceSeconds: 0
+    speakAloud: 0
+    actions: []
+    prompt: 
+    choices: []
+    endingId: 
+    nextId: b10_better
+  - id: b10_better
+    kind: 0
+    speakerKey: mother
+    text: But there was an even better choice.
+    autoAdvanceSeconds: 0
+    speakAloud: 0
+    actions: []
+    prompt: 
+    choices: []
+    endingId: 
+    nextId: b11_therewas
+  - id: b11_therewas
+    kind: 0
+    speakerKey: aisha
+    text: There was?
+    autoAdvanceSeconds: 0
+    speakAloud: 0
+    actions: []
+    prompt: 
+    choices: []
+    endingId: 
+    nextId: b12_end
+  - id: b12_end
+    kind: 4
+    speakerKey: 
+    text: 
+    autoAdvanceSeconds: 0
+    speakAloud: 0
+    actions: []
+    prompt: 
+    choices: []
+    endingId: ending_safe
+    nextId: 
+  - id: c1_look
+    kind: 2
+    speakerKey: 
+    text: 
+    autoAdvanceSeconds: 0
+    speakAloud: 0
+    actions:
+    - rid: 4223013682560631058
+    - rid: 4223013682560631059
+    prompt: 
+    choices: []
+    endingId: 
+    nextId: c2_sees
+  - id: c2_sees
+    kind: 0
+    speakerKey: narrator
+    text: Aisha decides not to handle this alone. She looks around, and sees the
+      teacher of her class nearby.
+    autoAdvanceSeconds: 0
+    speakAloud: 0
+    actions: []
+    prompt: 
+    choices: []
+    endingId: 
+    nextId: c3_walk
+  - id: c3_walk
+    kind: 2
+    speakerKey: 
+    text: 
+    autoAdvanceSeconds: 0
+    speakAloud: 0
+    actions:
+    - rid: 4223013682560631060
+    - rid: 4223013682560631061
+    prompt: 
+    choices: []
+    endingId: 
+    nextId: c4_ask
+  - id: c4_ask
+    kind: 0
+    speakerKey: aisha
+    text: Teacher, this man says he knows my mother.
+    autoAdvanceSeconds: 0
+    speakAloud: 0
+    actions: []
+    prompt: 
+    choices: []
+    endingId: 
+    nextId: c5_hello
+  - id: c5_hello
+    kind: 0
+    speakerKey: teacher
+    text: Hello. Can I help you?
+    autoAdvanceSeconds: 0
+    speakAloud: 0
+    actions: []
+    prompt: 
+    choices: []
+    endingId: 
+    nextId: c6_uncomfortable
+  - id: c6_uncomfortable
+    kind: 2
+    speakerKey: 
+    text: 
+    autoAdvanceSeconds: 0
+    speakAloud: 0
+    actions:
+    - rid: 4223013682560631062
+    - rid: 4223013682560631063
+    prompt: 
+    choices: []
+    endingId: 
+    nextId: c7_nevermind
+  - id: c7_nevermind
+    kind: 0
+    speakerKey: stranger
+    text: Never mind.
+    autoAdvanceSeconds: 0
+    speakAloud: 0
+    actions: []
+    prompt: 
+    choices: []
+    endingId: 
+    nextId: c8_flee
+  - id: c8_flee
+    kind: 2
+    speakerKey: 
+    text: 
+    autoAdvanceSeconds: 0
+    speakAloud: 0
+    actions:
+    - rid: 4223013682560631064
+    - rid: 4223013682560631065
+    prompt: 
+    choices: []
+    endingId: 
+    nextId: c9_calls
+  - id: c9_calls
+    kind: 0
+    speakerKey: narrator
+    text: The teacher stays with Aisha and calls her mother.
+    autoAdvanceSeconds: 0
+    speakAloud: 0
+    actions: []
+    prompt: 
+    choices: []
+    endingId: 
+    nextId: c10_arrive
+  - id: c10_arrive
+    kind: 2
+    speakerKey: 
+    text: 
+    autoAdvanceSeconds: 0
+    speakAloud: 0
+    actions:
+    - rid: 4223013682560631066
+    - rid: 4223013682560631067
+    - rid: 4223013682560631068
+    - rid: 4223013682560631069
+    - rid: 4223013682560631070
+    - rid: 4223013682560631071
+    prompt: 
+    choices: []
+    endingId: 
+    nextId: c11_right_thing
+  - id: c11_right_thing
+    kind: 0
+    speakerKey: mother
+    text: You did exactly the right thing.
+    autoAdvanceSeconds: 0
+    speakAloud: 0
+    actions: []
+    prompt: 
+    choices: []
+    endingId: 
+    nextId: c12_trusted
+  - id: c12_trusted
+    kind: 0
+    speakerKey: mother
+    text: When you're unsure, always find a trusted adult.
+    autoAdvanceSeconds: 0
+    speakAloud: 0
+    actions: []
+    prompt: 
+    choices: []
+    endingId: 
+    nextId: c13_relief
+  - id: c13_relief
+    kind: 2
+    speakerKey: 
+    text: 
+    autoAdvanceSeconds: 0
+    speakAloud: 0
+    actions:
+    - rid: 4223013682560631072
+    prompt: 
+    choices: []
+    endingId: 
+    nextId: c14_end
+  - id: c14_end
+    kind: 4
+    speakerKey: 
+    text: 
+    autoAdvanceSeconds: 0
+    speakAloud: 0
+    actions: []
+    prompt: 
+    choices: []
+    endingId: ending_best
+    nextId: 
+  endings:
+  - id: ending_unsafe
+    quality: 0
+    title: Unsafe Choice
+    lesson: 'Aisha went with someone she did not know.
+
+
+      Never go anywhere
+      with a stranger, even if they know your name or your family''s names.'
+    badge: {fileID: 0}
+    stinger: {fileID: 0}
+    stars: 0
+    completesMission: 0
+    allowRetry: 1
+    allowContinue: 0
+  - id: ending_safe
+    quality: 1
+    title: Safe Choice
+    lesson: 'Aisha stayed safe by walking away.
+
+
+      Walking away from a stranger
+      is a good safety step, but it is not the safest choice.'
+    badge: {fileID: 0}
+    stinger: {fileID: 0}
+    stars: 2
+    completesMission: 0
+    allowRetry: 1
+    allowContinue: 1
+  - id: ending_best
+    quality: 2
+    title: Best Safety Choice
+    lesson: 'When something feels wrong or confusing, seek help from a trusted adult
+      immediately.
+
+
+      This is the safest choice.'
+    badge: {fileID: 0}
+    stinger: {fileID: 0}
+    stars: 3
+    completesMission: 1
+    allowRetry: 1
+    allowContinue: 1
+  speakers:
+  - key: narrator
+    displayName: 
+    nameColor: {r: 0.8, g: 0.8, b: 0.85, a: 1}
+    actorKey: 
+    elevenLabsVoiceId: 
+  - key: aisha
+    displayName: Aisha
+    nameColor: {r: 0.45, g: 0.8, b: 1, a: 1}
+    actorKey: aisha
+    elevenLabsVoiceId: 
+  - key: stranger
+    displayName: Stranger
+    nameColor: {r: 0.95, g: 0.55, b: 0.35, a: 1}
+    actorKey: stranger
+    elevenLabsVoiceId: 
+  - key: teacher
+    displayName: Teacher
+    nameColor: {r: 0.6, g: 0.9, b: 0.6, a: 1}
+    actorKey: teacher
+    elevenLabsVoiceId: 
+  - key: mother
+    displayName: Mother
+    nameColor: {r: 1, g: 0.75, b: 0.85, a: 1}
+    actorKey: mother
+    elevenLabsVoiceId: 
+  - key: mother_memory
+    displayName: Mother
+    nameColor: {r: 1, g: 0.75, b: 0.85, a: 1}
+    actorKey: 
+    elevenLabsVoiceId: 
+  references:
+    version: 2
+    RefIds:
+    - rid: 4223013682560631016
+      type: {class: SetPlayerControlAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
+      data:
+        runInParallel: 0
+        allowControl: 0
+    - rid: 4223013682560631017
+      type: {class: FadeScreenAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
+      data:
+        runInParallel: 0
+        toBlack: 1
+        seconds: 0
+        holdSeconds: 0
+    - rid: 4223013682560631018
+      type: {class: LetterboxAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
+      data:
+        runInParallel: 0
+        on: 1
+        seconds: 0
+    - rid: 4223013682560631019
+      type: {class: TeleportActorAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
+      data:
+        runInParallel: 0
+        actorKey: aisha
+        markerKey: m_aisha_start
+        snapToGround: 1
+    - rid: 4223013682560631020
+      type: {class: CameraShotAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
+      data:
+        runInParallel: 0
+        markerKey: m_cam_gate
+        blendSeconds: 0
+        lookAtActorKey: 
+        letterbox: 1
+    - rid: 4223013682560631021
+      type: {class: PlaySoundAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
+      data:
+        runInParallel: 1
+        clip: {fileID: 0}
+        volume: 1
+        atMarkerKey: 
+        waitForEnd: 0
+    - rid: 4223013682560631022
+      type: {class: FadeScreenAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
+      data:
+        runInParallel: 0
+        toBlack: 0
+        seconds: 1.5
+        holdSeconds: 0
+    - rid: 4223013682560631023
+      type: {class: WaitAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
+      data:
+        runInParallel: 0
+        seconds: 1
+    - rid: 4223013682560631024
+      type: {class: CameraShotAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
+      data:
+        runInParallel: 0
+        markerKey: m_cam_aisha_cu
+        blendSeconds: 1
+        lookAtActorKey: aisha
+        letterbox: 1
+    - rid: 4223013682560631025
+      type: {class: WaitAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
+      data:
+        runInParallel: 0
+        seconds: 1.2
+    - rid: 4223013682560631026
+      type: {class: LetterboxAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
+      data:
+        runInParallel: 0
+        on: 0
+        seconds: 0.4
+    - rid: 4223013682560631027
+      type: {class: CameraReleaseAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
+      data:
+        runInParallel: 0
+        blendSeconds: 0.8
+    - rid: 4223013682560631028
+      type: {class: SetObjectiveAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
+      data:
+        runInParallel: 0
+        text: Walk home along the road.
+    - rid: 4223013682560631029
+      type: {class: SetPlayerControlAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
+      data:
+        runInParallel: 0
+        allowControl: 1
+    - rid: 4223013682560631030
+      type: {class: WaitForPlayerAtMarkerAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
+      data:
+        runInParallel: 0
+        markerKey: m_road_corner
+        radius: 3
+        ignoreY: 1
+        timeoutSeconds: 0
+    - rid: 4223013682560631031
+      type: {class: SetPlayerControlAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
+      data:
+        runInParallel: 0
+        allowControl: 0
+    - rid: 4223013682560631032
+      type: {class: SetObjectiveAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
+      data:
+        runInParallel: 0
+        text: 
+    - rid: 4223013682560631033
+      type: {class: LetterboxAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
+      data:
+        runInParallel: 0
+        on: 1
+        seconds: 0.4
+    - rid: 4223013682560631034
+      type: {class: SetActorActiveAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
+      data:
+        runInParallel: 0
+        actorKey: stranger
+        active: 1
+    - rid: 4223013682560631035
+      type: {class: TeleportActorAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
+      data:
+        runInParallel: 0
+        actorKey: stranger
+        markerKey: m_stranger_spawn
+        snapToGround: 1
+    - rid: 4223013682560631036
+      type: {class: CameraShotAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
+      data:
+        runInParallel: 0
+        markerKey: m_cam_meeting
+        blendSeconds: 1
+        lookAtActorKey: 
+        letterbox: 1
+    - rid: 4223013682560631037
+      type: {class: MoveActorAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
+      data:
+        runInParallel: 1
+        actorKey: stranger
+        markerKey: m_stranger_call
+        run: 0
+        walkBackwards: 0
+        faceActorKeyOnArrive: aisha
+        faceSeconds: 0.35
+    - rid: 4223013682560631038
+      type: {class: FaceAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
+      data:
+        runInParallel: 0
+        actorKey: aisha
+        targetActorKey: stranger
+        targetMarkerKey: 
+        seconds: 0.6
+        instant: 0
+    - rid: 4223013682560631039
+      type: {class: MoveActorAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
+      data:
+        runInParallel: 0
+        actorKey: stranger
+        markerKey: m_stranger_close
+        run: 0
+        walkBackwards: 0
+        faceActorKeyOnArrive: aisha
+        faceSeconds: 0.35
+    - rid: 4223013682560631040
+      type: {class: CameraShotAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
+      data:
+        runInParallel: 0
+        markerKey: m_cam_close
+        blendSeconds: 0.8
+        lookAtActorKey: 
+        letterbox: 1
+    - rid: 4223013682560631041
+      type: {class: AnimatorParamAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
+      data:
+        runInParallel: 0
+        actorKey: aisha
+        paramName: Fear
+        kind: 0
+        boolValue: 0
+        floatValue: 0
+        holdSeconds: 1
+    - rid: 4223013682560631042
+      type: {class: AnimatorParamAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
+      data:
+        runInParallel: 0
+        actorKey: aisha
+        paramName: Sad
+        kind: 0
+        boolValue: 0
+        floatValue: 0
+        holdSeconds: 0.8
+    - rid: 4223013682560631043
+      type: {class: CameraShotAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
+      data:
+        runInParallel: 0
+        markerKey: m_cam_choice
+        blendSeconds: 1
+        lookAtActorKey: 
+        letterbox: 1
+    - rid: 4223013682560631044
+      type: {class: CameraShotAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
+      data:
+        runInParallel: 0
+        markerKey: m_cam_end_a
+        blendSeconds: 1
+        lookAtActorKey: 
+        letterbox: 1
+    - rid: 4223013682560631045
+      type: {class: MoveActorAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
+      data:
+        runInParallel: 1
+        actorKey: stranger
+        markerKey: m_patha_exit_stranger
+        run: 0
+        walkBackwards: 0
+        faceActorKeyOnArrive: 
+        faceSeconds: 0.35
+    - rid: 4223013682560631046
+      type: {class: MoveActorAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
+      data:
+        runInParallel: 0
+        actorKey: aisha
+        markerKey: m_patha_exit
+        run: 0
+        walkBackwards: 0
+        faceActorKeyOnArrive: 
+        faceSeconds: 0.35
+    - rid: 4223013682560631047
+      type: {class: FadeScreenAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
+      data:
+        runInParallel: 0
+        toBlack: 1
+        seconds: 2
+        holdSeconds: 0
+    - rid: 4223013682560631048
+      type: {class: MoveActorAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
+      data:
+        runInParallel: 0
+        actorKey: aisha
+        markerKey: m_aisha_stepback
+        run: 0
+        walkBackwards: 1
+        faceActorKeyOnArrive: 
+        faceSeconds: 0.35
+    - rid: 4223013682560631049
+      type: {class: AnimatorParamAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
+      data:
+        runInParallel: 0
+        actorKey: aisha
+        paramName: Fear
+        kind: 0
+        boolValue: 0
+        floatValue: 0
+        holdSeconds: 0.5
+    - rid: 4223013682560631050
+      type: {class: MoveActorAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
+      data:
+        runInParallel: 0
+        actorKey: aisha
+        markerKey: m_home_path
+        run: 1
+        walkBackwards: 0
+        faceActorKeyOnArrive: 
+        faceSeconds: 0.35
+    - rid: 4223013682560631051
+      type: {class: FadeScreenAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
+      data:
+        runInParallel: 0
+        toBlack: 1
+        seconds: 1.2
+        holdSeconds: 0
+    - rid: 4223013682560631052
+      type: {class: TeleportActorAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
+      data:
+        runInParallel: 0
+        actorKey: aisha
+        markerKey: m_home_door
+        snapToGround: 1
+    - rid: 4223013682560631053
+      type: {class: SetActorActiveAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
+      data:
+        runInParallel: 0
+        actorKey: stranger
+        active: 0
+    - rid: 4223013682560631054
+      type: {class: SetActorActiveAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
+      data:
+        runInParallel: 0
+        actorKey: mother
+        active: 1
+    - rid: 4223013682560631055
+      type: {class: TeleportActorAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
+      data:
+        runInParallel: 0
+        actorKey: mother
+        markerKey: m_mother_door
+        snapToGround: 1
+    - rid: 4223013682560631056
+      type: {class: CameraShotAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
+      data:
+        runInParallel: 0
+        markerKey: m_cam_home_door
+        blendSeconds: 0
+        lookAtActorKey: 
+        letterbox: 1
+    - rid: 4223013682560631057
+      type: {class: FadeScreenAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
+      data:
+        runInParallel: 0
+        toBlack: 0
+        seconds: 1
+        holdSeconds: 0
+    - rid: 4223013682560631058
+      type: {class: CameraShotAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
+      data:
+        runInParallel: 0
+        markerKey: m_cam_choice
+        blendSeconds: 0.8
+        lookAtActorKey: 
+        letterbox: 1
+    - rid: 4223013682560631059
+      type: {class: FaceAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
+      data:
+        runInParallel: 0
+        actorKey: aisha
+        targetActorKey: 
+        targetMarkerKey: m_teacher_stand
+        seconds: 0.6
+        instant: 0
+    - rid: 4223013682560631060
+      type: {class: MoveActorAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
+      data:
+        runInParallel: 0
+        actorKey: aisha
+        markerKey: m_aisha_at_teacher
+        run: 1
+        walkBackwards: 0
+        faceActorKeyOnArrive: teacher
+        faceSeconds: 0.35
+    - rid: 4223013682560631061
+      type: {class: CameraShotAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
+      data:
+        runInParallel: 0
+        markerKey: m_cam_teacher
+        blendSeconds: 1
+        lookAtActorKey: 
+        letterbox: 1
+    - rid: 4223013682560631062
+      type: {class: FaceAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
+      data:
+        runInParallel: 0
+        actorKey: stranger
+        targetActorKey: aisha
+        targetMarkerKey: 
+        seconds: 0.4
+        instant: 0
+    - rid: 4223013682560631063
+      type: {class: AnimatorParamAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
+      data:
+        runInParallel: 0
+        actorKey: stranger
+        paramName: Fear
+        kind: 0
+        boolValue: 0
+        floatValue: 0
+        holdSeconds: 0.8
+    - rid: 4223013682560631064
+      type: {class: MoveActorAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
+      data:
+        runInParallel: 0
+        actorKey: stranger
+        markerKey: m_stranger_flee
+        run: 1
+        walkBackwards: 0
+        faceActorKeyOnArrive: 
+        faceSeconds: 0.35
+    - rid: 4223013682560631065
+      type: {class: SetActorActiveAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
+      data:
+        runInParallel: 0
+        actorKey: stranger
+        active: 0
+    - rid: 4223013682560631066
+      type: {class: FadeScreenAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
+      data:
+        runInParallel: 0
+        toBlack: 1
+        seconds: 0.8
+        holdSeconds: 0.4
+    - rid: 4223013682560631067
+      type: {class: SetActorActiveAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
+      data:
+        runInParallel: 0
+        actorKey: mother
+        active: 1
+    - rid: 4223013682560631068
+      type: {class: TeleportActorAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
+      data:
+        runInParallel: 0
+        actorKey: mother
+        markerKey: m_mother_arrive_spawn
+        snapToGround: 1
+    - rid: 4223013682560631069
+      type: {class: CameraShotAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
+      data:
+        runInParallel: 0
+        markerKey: m_cam_reunion
+        blendSeconds: 0
+        lookAtActorKey: 
+        letterbox: 1
+    - rid: 4223013682560631070
+      type: {class: FadeScreenAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
+      data:
+        runInParallel: 0
+        toBlack: 0
+        seconds: 0.8
+        holdSeconds: 0
+    - rid: 4223013682560631071
+      type: {class: MoveActorAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
+      data:
+        runInParallel: 0
+        actorKey: mother
+        markerKey: m_mother_arrive
+        run: 1
+        walkBackwards: 0
+        faceActorKeyOnArrive: aisha
+        faceSeconds: 0.35
+    - rid: 4223013682560631072
+      type: {class: AnimatorParamAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
+      data:
+        runInParallel: 0
+        actorKey: aisha
+        paramName: Laugh
+        kind: 0
+        boolValue: 0
+        floatValue: 0
+        holdSeconds: 1.2
