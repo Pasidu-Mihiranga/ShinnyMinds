@@ -33,6 +33,7 @@ namespace ShinyMinds.Missions.EditorTools
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             // The two per-NPC Groq canvases sit at 0, so this always draws above them.
             canvas.sortingOrder = 100;
+            ApplyTextShaderChannels(canvas);
 
             var scaler = root.GetComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
@@ -225,6 +226,57 @@ namespace ShinyMinds.Missions.EditorTools
             }
 
             return prefab;
+        }
+
+        /// <summary>
+        /// TextMeshPro's SDF shader reads per-vertex scale data out of TEXCOORD1, and
+        /// reads Normal/Tangent for its bevel and lighting variants. A Canvas created
+        /// from script defaults additionalShaderChannels to Nothing, so the canvas feeds
+        /// the shader zeros, the distance-field maths degenerates, and text renders muddy
+        /// and dark whatever colour you set on it. Creating a Canvas via the GameObject
+        /// menu sets these for you; creating one in code does not.
+        /// </summary>
+        public static void ApplyTextShaderChannels(Canvas canvas)
+        {
+            canvas.additionalShaderChannels =
+                AdditionalCanvasShaderChannels.TexCoord1 |
+                AdditionalCanvasShaderChannels.Normal |
+                AdditionalCanvasShaderChannels.Tangent;
+        }
+
+        /// <summary>
+        /// Repairs canvases that were generated before the fix above, so an existing
+        /// scene does not have to be rebuilt from scratch.
+        /// </summary>
+        [MenuItem("ShinyMinds/Setup/Fix Text Rendering On Existing Canvases")]
+        public static void FixExistingCanvases()
+        {
+            int fixedCount = 0;
+
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(AssetPath);
+            if (prefab != null)
+            {
+                var canvas = prefab.GetComponent<Canvas>();
+                if (canvas != null)
+                {
+                    ApplyTextShaderChannels(canvas);
+                    EditorUtility.SetDirty(prefab);
+                    AssetDatabase.SaveAssets();
+                    fixedCount++;
+                }
+            }
+
+            foreach (Canvas canvas in Object.FindObjectsByType<Canvas>(FindObjectsInactive.Include))
+            {
+                if (canvas.additionalShaderChannels == AdditionalCanvasShaderChannels.None)
+                {
+                    ApplyTextShaderChannels(canvas);
+                    EditorUtility.SetDirty(canvas);
+                    fixedCount++;
+                }
+            }
+
+            Debug.Log($"Fixed shader channels on {fixedCount} canvas(es). Save the scene.");
         }
 
         static MissionChoiceButton BuildChoiceButton(Transform parent, int index)
