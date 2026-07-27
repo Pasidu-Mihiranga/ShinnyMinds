@@ -1,5 +1,6 @@
 using UnityEngine;
 using TMPro;
+using ShinyMinds.Core;
 
 public class DoorController : MonoBehaviour
 {
@@ -64,6 +65,19 @@ public class DoorController : MonoBehaviour
             Time.deltaTime * doorOpenSpeed
         );
 
+        // Keep the door animating, but hide the prompt and ignore input while a
+        // cutscene or dialogue owns the player.
+        if (PlayerInputLock.IsLocked)
+        {
+            if (doorPrompt != null && doorPrompt.activeSelf)
+                doorPrompt.SetActive(false);
+
+            return;
+        }
+
+        if (playerNearby && doorPrompt != null && !doorPrompt.activeSelf)
+            doorPrompt.SetActive(true);
+
         if (playerNearby && promptText != null)
         {
             promptText.text =
@@ -72,7 +86,7 @@ public class DoorController : MonoBehaviour
                 : "Press E to Open Door";
         }
 
-        if (playerNearby && Input.GetKeyDown(KeyCode.E))
+        if (playerNearby && InteractKey.TryConsumeWorld())
         {
             Animator playerAnimator =
                 GameObject.FindGameObjectWithTag("Player")

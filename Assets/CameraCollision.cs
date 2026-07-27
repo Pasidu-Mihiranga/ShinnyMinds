@@ -7,6 +7,10 @@ public class CameraCollision : MonoBehaviour
     public Transform cameraTransform;
 
     [Header("Collision")]
+    [Tooltip("Layers the camera is allowed to collide with. Exclude characters " +
+             "(CameraIgnore) or the camera slams forward whenever an NPC stands " +
+             "behind the player.")]
+    public LayerMask blockers = ~0;
     public float sphereRadius = 0.3f;
     public float wallOffset = 0.4f;
     public float minDistance = 2.0f;
@@ -41,7 +45,9 @@ public class CameraCollision : MonoBehaviour
             sphereRadius,
             direction,
             out RaycastHit hit,
-            desiredDistance + collisionBuffer
+            desiredDistance + collisionBuffer,
+            blockers,
+            QueryTriggerInteraction.Ignore   // never collide with InteractionZone spheres
         );
 
         Vector3 targetPosition;

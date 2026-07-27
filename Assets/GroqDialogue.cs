@@ -4,7 +4,11 @@ using TMPro;
 using System.Collections;
 using System.Text;
 using Newtonsoft.Json.Linq;
+using ShinyMinds.Core;
 
+// Runs before NPCInteraction (-50) and DoorController (0) so an open dialogue
+// always wins the E press.
+[DefaultExecutionOrder(-100)]
 public class GroqDialogue : MonoBehaviour
 {
     [Header("NPC Topic")]
@@ -56,10 +60,9 @@ public class GroqDialogue : MonoBehaviour
 
         dialogueOpen = true;
 
-        if (playerController != null)
-        {
-            playerController.enabled = false;
-        }
+        // Freezes PlayerController, CameraController, MapToggle and footstepaudio
+        // together, and zeroes the locomotion animator params. See PlayerLockBinder.
+        PlayerInputLock.Acquire(this);
 
         Debug.Log("TOPIC = " + safetyTopic);
 
@@ -304,10 +307,7 @@ public class GroqDialogue : MonoBehaviour
 
         StopTalking();
 
-        if (playerController != null)
-        {
-            playerController.enabled = true;
-        }
+        PlayerInputLock.Release(this);
     }
 
     void Update()
@@ -316,9 +316,9 @@ public class GroqDialogue : MonoBehaviour
             return;
 
         if (
-            Input.GetKeyDown(KeyCode.E)
-            &&
             (tts == null || !tts.IsSpeaking)
+            &&
+            InteractKey.TryConsumeUI()
         )
         {
             currentLine++;

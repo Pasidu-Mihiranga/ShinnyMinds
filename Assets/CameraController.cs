@@ -1,4 +1,5 @@
 using UnityEngine;
+using ShinyMinds.Core;
 
 public class CameraController : MonoBehaviour
 {
@@ -18,11 +19,18 @@ public class CameraController : MonoBehaviour
 
     void Start()
     {
-        Cursor.lockState = CursorLockMode.Locked;
+        // Cursor ownership belongs to PlayerInputLock so that choice UIs can
+        // temporarily free the cursor and reliably get it back.
+        PlayerInputLock.ApplyCursor();
     }
 
     void Update()
     {
+        // Belt and braces: even if PlayerLockBinder is mis-wired, never spin the
+        // camera while a cutscene or choice panel owns input.
+        if (PlayerInputLock.IsLocked)
+            return;
+
         // =========================
         // MOUSE INPUT
         // =========================
