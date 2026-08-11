@@ -1,80 +1,119 @@
-# Shinyminds Parent — Frontend Prototype
+# Shinyminds Parent — dashboard
 
-A mobile-first, responsive web app (installable as a PWA) for the Shinyminds Parent dashboard. This is a **frontend-only prototype** — all data (child profile, scores, activity history, chat messages) is mock data in one file. There is no backend.
+A mobile-first, installable (PWA) web app where a parent follows their child's progress
+in the ShinyMinds game.
 
-## What's in it
+React 19 · Vite · Tailwind · Recharts
 
-Four screens, matching the UI mockups:
+Every screen reads live data from the ShinyMinds API. There is no mock data — the
+previous `src/data/mock.ts` has been removed, so nothing on screen is invented.
 
-- **Home** — greeting, overall wellbeing score, this week's stats, recent activity, AI tip
-- **Insights** — Progress / Skills / Activity tabs, charts, strengths & needs-attention
-- **AI Assistant** — chat thread with quick-reply suggestion chips
-- **Settings** — child profile, account & app settings, log out
+See the [root README](../../README.md) for the whole system, and
+[backend/README.md](../../backend/README.md) for the API.
 
-## How to run it
+---
 
-You need [Node.js](https://nodejs.org) installed (18+).
+## Running it
+
+The API must be running first, or every screen will show
+"Cannot reach the ShinyMinds server".
 
 ```bash
 cd app
 npm install
+cp .env.example .env.local
 npm run dev
 ```
 
-Then open the URL it prints (e.g. `http://localhost:5173`) in your browser.
+Open the URL it prints (usually `http://localhost:5173`) and create a parent account.
 
-To see it as a phone would:
-- Open Chrome DevTools (`Cmd+Option+I`), click the device toolbar icon (`Cmd+Shift+M`), and pick any phone.
-- Or just shrink your browser window narrow — the layout is responsive and fills the screen edge-to-edge on mobile widths.
+To see it as a phone would: open DevTools (`Cmd+Option+I`), toggle the device toolbar
+(`Cmd+Shift+M`), and pick a phone. Or just narrow the window — the layout is responsive.
 
-Other commands:
-```bash
-npm run build      # production build (outputs to app/dist)
-npm run preview    # preview the production build locally
-```
+| | |
+|---|---|
+| `npm run dev` | Dev server |
+| `npm run build` | Production build into `dist/` |
+| `npm run preview` | Serve the production build |
+| `npm run lint` | oxlint |
 
-## Where the mock data lives
+### Configuration
 
-Everything shown on screen — the child's name, scores, this week's stats, activity list, chat messages — is in one file:
-
-```
-src/data/mock.ts
-```
-
-Edit values there and the whole app updates. No other file needs to change for content edits.
-
-## Adding real images
-
-Right now every photo is a placeholder (a colored gradient square/circle with an icon or initial). Placeholders live in:
+One variable, in `.env.local`:
 
 ```
-public/images/
+VITE_API_URL=http://localhost:4000
 ```
 
-Replace a placeholder by **dropping in a real image with the exact same filename** (any format — `.png`/`.jpg` works fine, just keep the name, or update the path in `src/data/mock.ts` if you rename it). No code changes needed if you keep the names.
+**Never put a secret in this file.** Vite inlines every `VITE_` variable into the
+JavaScript bundle that each visitor downloads. The assistant works by calling the API,
+which holds the Groq key server-side.
 
-| Filename | Used for | Suggested image |
-|---|---|---|
-| `avatar-child-mihiri.svg` | Child's profile photo (Home, Insights, Assistant, Settings) | A square/circle headshot of the child |
-| `avatar-parent-nadee.svg` | Parent's avatar (top-right of Home/Insights/Assistant) | A square/circle headshot of the parent |
-| `activity-strangers-gift.svg` | "The Stranger's Gift" activity thumbnail | Scene illustration/screenshot from that scenario |
-| `activity-helping-friend.svg` | "Helping a Friend" activity thumbnail | Scene illustration/screenshot |
-| `activity-sharing-toys.svg` | "Sharing Toys" activity thumbnail | Scene illustration/screenshot |
-| `activity-online-safety.svg` | "Online Safety Basics" activity thumbnail | Scene illustration/screenshot |
-| `activity-saying-sorry.svg` | "Saying Sorry" activity thumbnail | Scene illustration/screenshot |
-| `activity-new-classmate.svg` | "The New Classmate" activity thumbnail | Scene illustration/screenshot |
-| `logo.svg` | App logo (browser tab icon, top bar, PWA home-screen icon) | Your real app logo, ideally square |
+---
 
-Avatars are displayed round and cropped to a circle — a centered square photo works best. Activity thumbnails are displayed as rounded squares.
+## Seeing real data
 
-Want more activities than the ones listed? Add a new image to `public/images/`, then add a matching entry to the `recentActivity` array in `src/data/mock.ts` pointing at it.
+The dashboard shows a child's progress, so a child has to exist and have played.
 
-## Project structure
+1. Create a parent account here.
+2. Go to **Settings** and copy your six-character **parent code**.
+3. In the Unity game, create a player and enter that code when asked.
+4. Play a mission. It appears on the dashboard immediately.
+
+Until a child links, every screen shows the parent code to share rather than an empty
+dashboard.
+
+---
+
+## Structure
 
 ```
 src/
-  data/mock.ts        all mock data — edit this for content changes
-  screens/            one file per screen (Home, Insights, Assistant, Settings)
-  components/         shared UI: top bar, bottom nav, icons, progress ring, etc.
-public/images/        all images (placeholders — replace as described above)
+├── api/
+│   ├── client.ts      Every endpoint, token storage, refresh-and-retry
+│   └── types.ts       Response shapes, mirroring the API's read models
+├── auth/
+│   └── AuthContext    Who is signed in, and which child is selected
+├── hooks/
+│   └── useApiData     loading / data / error for one call
+├── components/        Shared UI, including LoadingCard / ErrorCard / EmptyCard
+├── screens/           SignIn, Home, Insights, Assistant, Settings
+└── lib/format.ts      Dates, durations, skill→icon
 ```
+
+### How a screen loads data
+
+```tsx
+const overview = useApiData(
+  useCallback(() => api.overview(childId), [childId]),
+  [childId],
+);
+
+if (overview.loading) return <LoadingCard />;
+if (overview.error) return <ErrorCard message={overview.error} onRetry={overview.reload} />;
+```
+
+Every data-backed screen handles all three states. `useApiData` ignores a response that
+arrives after the child has been switched, so the previous child's numbers never flash up.
+
+### Adding a screen or endpoint
+
+1. Add the response type to `api/types.ts`, matching the backend's read model.
+2. Add a method to `api/client.ts`.
+3. Call it with `useApiData` and handle loading, error and empty.
+
+Colours, labels and icons for skills come from the API (`color`, `icon`, `label`), so the
+game, the API and the dashboard cannot disagree about what Empathy looks like. Don't
+hard-code them here.
+
+---
+
+## Images
+
+`public/images/logo.svg` is the app logo, used in the top bar, the browser tab and the
+PWA home-screen icon. Replace it with your real logo, keeping the filename and a square
+aspect ratio.
+
+Child avatars come from `avatarUrl` on the API. Until one is set, `ChildAvatar` renders
+the child's initials on a tinted circle, so there are no broken images and no stock
+photos of children who don't exist.
