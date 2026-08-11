@@ -36,8 +36,10 @@ namespace ShinyMinds.Missions.EditorTools
             "Assets/characters/NPC_Characters/Ch29_nonPBR.fbx",
         };
 
-        // Clips that should cycle rather than play once.
+        // Clips that should cycle rather than play once. The emotes below are one-shots,
+        // but every clip here needs its root height pinned to the feet — see ConfigureClip.
         static readonly string[] LoopingClips = { ClipIdle, ClipWalk, ClipRun, ClipTalk };
+        static readonly string[] OneShotClips = { ClipFear, ClipSad, ClipLaugh };
 
         // ------------------------------------------------------------------- 3. rigs
 
@@ -67,14 +69,30 @@ namespace ShinyMinds.Missions.EditorTools
             }
 
             foreach (string path in LoopingClips)
-                SetClipLooping(path);
+                ConfigureClip(path, loop: true);
+
+            foreach (string path in OneShotClips)
+                ConfigureClip(path, loop: false);
 
             AssetDatabase.SaveAssets();
             Debug.Log("Rigs configured. If you had already run 'Wire Open Scene', run it again — " +
                       "a rig re-import can drop component overrides on scene instances.");
         }
 
-        static void SetClipLooping(string path)
+        /// <summary>
+        /// Makes a clip cycle, and pins its root height to the feet.
+        ///
+        /// Mixamo exports the root motion node at HIP height, so a clip imported with
+        /// Root Transform Position (Y) = "Original" draws the body about a hip above
+        /// wherever the GameObject sits — multiplied by the actor's scale, which is 2
+        /// for the Stranger. The transform is on the road; the character is in the air,
+        /// and no amount of ground raycasting in ActorMover can correct it because the
+        /// offset lives inside the animation. "Feet" is what actually grounds them.
+        ///
+        /// Bake Into Pose goes with it: ActorMover drives translation and root motion is
+        /// off, so vertical root motion would only fight SnapDown.
+        /// </summary>
+        static void ConfigureClip(string path, bool loop)
         {
             var importer = AssetImporter.GetAtPath(path) as ModelImporter;
             if (importer == null) return;
@@ -88,16 +106,26 @@ namespace ShinyMinds.Missions.EditorTools
             bool changed = false;
             for (int i = 0; i < clips.Length; i++)
             {
-                if (clips[i].loopTime) continue;
-                clips[i].loopTime = true;
-                changed = true;
+                if (loop && !clips[i].loopTime)
+                {
+                    clips[i].loopTime = true;
+                    changed = true;
+                }
+
+                if (clips[i].keepOriginalPositionY || !clips[i].heightFromFeet || !clips[i].lockRootHeightY)
+                {
+                    clips[i].keepOriginalPositionY = false;   // Based Upon: not "Original"
+                    clips[i].heightFromFeet = true;           // Based Upon: "Feet"
+                    clips[i].lockRootHeightY = true;          // Bake Into Pose
+                    changed = true;
+                }
             }
 
             if (!changed) return;
 
             importer.clipAnimations = clips;
             importer.SaveAndReimport();
-            Debug.Log($"Set looping: {path}");
+            Debug.Log($"Configured clip (feet-grounded root{(loop ? " + looping" : "")}): {path}");
         }
 
         // -------------------------------------------------------------- 4. controllers

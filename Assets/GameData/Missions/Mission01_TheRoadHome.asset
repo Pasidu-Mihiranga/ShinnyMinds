@@ -24,46 +24,20 @@ MonoBehaviour:
     autoAdvanceSeconds: 0
     speakAloud: 0
     actions:
-    - rid: 4223013682560631073
-    - rid: 4223013682560631074
-    - rid: 4223013682560631075
-    - rid: 4223013682560631076
-    - rid: 4223013682560631077
-    - rid: 4223013682560631078
-    - rid: 4223013682560631079
-    - rid: 4223013682560631080
-    prompt: 
-    choices: []
-    endingId: 
-    nextId: s1_narr
-  - id: s1_narr
-    kind: 0
-    speakerKey: narrator
-    text: 'A warm Tuesday afternoon.
-
-      The final school bell rings.'
-    autoAdvanceSeconds: 0
-    speakAloud: 0
-    actions: []
-    prompt: 
-    choices: []
-    endingId: 
-    nextId: s1_narr2
-  - id: s1_narr2
-    kind: 0
-    speakerKey: narrator
-    text: 'Children pour out of the gates,
-
-      laughing and talking.'
-    autoAdvanceSeconds: 0
-    speakAloud: 0
-    actions: []
+    - rid: 8638730069746122877
+    - rid: 8638730069746122878
+    - rid: 8638730069746122879
+    - rid: 8638730069746122880
+    - rid: 8638730069746122881
+    - rid: 8638730069746122882
+    - rid: 8638730069746122883
+    - rid: 8638730069746122884
     prompt: 
     choices: []
     endingId: 
     nextId: s1_mother
   - id: s1_mother
-    kind: 0
+    kind: 5
     speakerKey: mother_memory
     text: Come straight home after school, Aisha.
     autoAdvanceSeconds: 0
@@ -74,8 +48,8 @@ MonoBehaviour:
     endingId: 
     nextId: s1_aisha
   - id: s1_aisha
-    kind: 0
-    speakerKey: aisha
+    kind: 5
+    speakerKey: aisha_memory
     text: Okay, Ammi.
     autoAdvanceSeconds: 0
     speakAloud: 0
@@ -91,12 +65,13 @@ MonoBehaviour:
     autoAdvanceSeconds: 0
     speakAloud: 0
     actions:
-    - rid: 4223013682560631081
-    - rid: 4223013682560631082
-    - rid: 4223013682560631083
-    - rid: 4223013682560631084
-    - rid: 4223013682560631085
-    - rid: 4223013682560631086
+    - rid: 8638730069746122885
+    - rid: 8638730069746122886
+    - rid: 8638730069746122887
+    - rid: 8638730069746122888
+    - rid: 8638730069746122889
+    - rid: 8638730069746122890
+    - rid: 8638730069746122891
     prompt: 
     choices: []
     endingId: 
@@ -108,7 +83,7 @@ MonoBehaviour:
     autoAdvanceSeconds: 0
     speakAloud: 0
     actions:
-    - rid: 4223013682560631087
+    - rid: 8638730069746122892
     prompt: 
     choices: []
     endingId: 
@@ -120,12 +95,12 @@ MonoBehaviour:
     autoAdvanceSeconds: 0
     speakAloud: 0
     actions:
-    - rid: 4223013682560631088
-    - rid: 4223013682560631089
-    - rid: 4223013682560631090
-    - rid: 4223013682560631091
-    - rid: 4223013682560631092
-    - rid: 4223013682560631093
+    - rid: 8638730069746122893
+    - rid: 8638730069746122894
+    - rid: 8638730069746122895
+    - rid: 8638730069746122896
+    - rid: 8638730069746122897
+    - rid: 8638730069746122898
     prompt: 
     choices: []
     endingId: 
@@ -148,9 +123,9 @@ MonoBehaviour:
     autoAdvanceSeconds: 0
     speakAloud: 0
     actions:
-    - rid: 4223013682560631094
-    - rid: 4223013682560631095
-    - rid: 4223013682560631096
+    - rid: 8638730069746122899
+    - rid: 8638730069746122900
+    - rid: 8638730069746122901
     prompt: 
     choices: []
     endingId: 
@@ -217,9 +192,9 @@ MonoBehaviour:
     autoAdvanceSeconds: 0
     speakAloud: 0
     actions:
-    - rid: 4223013682560631097
-    - rid: 4223013682560631098
-    - rid: 4223013682560631099
+    - rid: 8638730069746122902
+    - rid: 8638730069746122903
+    - rid: 8638730069746122904
     prompt: 
     choices: []
     endingId: 
@@ -253,8 +228,8 @@ MonoBehaviour:
     autoAdvanceSeconds: 0
     speakAloud: 0
     actions:
-    - rid: 4223013682560631100
-    - rid: 4223013682560631101
+    - rid: 8638730069746122905
+    - rid: 8638730069746122906
     prompt: 
     choices: []
     endingId: 
@@ -279,9 +254,9 @@ MonoBehaviour:
     autoAdvanceSeconds: 0
     speakAloud: 0
     actions:
-    - rid: 4223013682560631102
-    - rid: 4223013682560631103
-    - rid: 4223013682560631104
+    - rid: 8638730069746122907
+    - rid: 8638730069746122908
+    - rid: 8638730069746122909
     prompt: 
     choices: []
     endingId: 
@@ -346,10 +321,10 @@ MonoBehaviour:
     autoAdvanceSeconds: 0
     speakAloud: 0
     actions:
-    - rid: 4223013682560631105
-    - rid: 4223013682560631106
-    - rid: 4223013682560631107
-    - rid: 4223013682560631108
+    - rid: 8638730069746122910
+    - rid: 8638730069746122911
+    - rid: 8638730069746122912
+    - rid: 8638730069746122913
     prompt: 
     choices: []
     endingId: 
@@ -372,8 +347,8 @@ MonoBehaviour:
     autoAdvanceSeconds: 0
     speakAloud: 0
     actions:
-    - rid: 4223013682560631109
-    - rid: 4223013682560631110
+    - rid: 8638730069746122914
+    - rid: 8638730069746122915
     prompt: 
     choices: []
     endingId: 
@@ -418,8 +393,8 @@ MonoBehaviour:
     autoAdvanceSeconds: 0
     speakAloud: 0
     actions:
-    - rid: 4223013682560631111
-    - rid: 4223013682560631112
+    - rid: 8638730069746122916
+    - rid: 8638730069746122917
     prompt: 
     choices: []
     endingId: 
@@ -431,12 +406,12 @@ MonoBehaviour:
     autoAdvanceSeconds: 0
     speakAloud: 0
     actions:
-    - rid: 4223013682560631113
-    - rid: 4223013682560631114
-    - rid: 4223013682560631115
-    - rid: 4223013682560631116
-    - rid: 4223013682560631117
-    - rid: 4223013682560631118
+    - rid: 8638730069746122918
+    - rid: 8638730069746122919
+    - rid: 8638730069746122920
+    - rid: 8638730069746122921
+    - rid: 8638730069746122922
+    - rid: 8638730069746122923
     prompt: 
     choices: []
     endingId: 
@@ -529,8 +504,8 @@ MonoBehaviour:
     autoAdvanceSeconds: 0
     speakAloud: 0
     actions:
-    - rid: 4223013682560631119
-    - rid: 4223013682560631120
+    - rid: 8638730069746122924
+    - rid: 8638730069746122925
     prompt: 
     choices: []
     endingId: 
@@ -568,8 +543,8 @@ MonoBehaviour:
     autoAdvanceSeconds: 0
     speakAloud: 0
     actions:
-    - rid: 4223013682560631121
-    - rid: 4223013682560631122
+    - rid: 8638730069746122926
+    - rid: 8638730069746122927
     prompt: 
     choices: []
     endingId: 
@@ -603,8 +578,8 @@ MonoBehaviour:
     autoAdvanceSeconds: 0
     speakAloud: 0
     actions:
-    - rid: 4223013682560631123
-    - rid: 4223013682560631124
+    - rid: 8638730069746122928
+    - rid: 8638730069746122929
     prompt: 
     choices: []
     endingId: 
@@ -627,8 +602,8 @@ MonoBehaviour:
     autoAdvanceSeconds: 0
     speakAloud: 0
     actions:
-    - rid: 4223013682560631125
-    - rid: 4223013682560631126
+    - rid: 8638730069746122930
+    - rid: 8638730069746122931
     prompt: 
     choices: []
     endingId: 
@@ -653,13 +628,13 @@ MonoBehaviour:
     autoAdvanceSeconds: 0
     speakAloud: 0
     actions:
-    - rid: 4223013682560631127
-    - rid: 4223013682560631128
-    - rid: 4223013682560631129
-    - rid: 4223013682560631130
-    - rid: 4223013682560631131
-    - rid: 4223013682560631132
-    - rid: 4223013682560631133
+    - rid: 8638730069746122932
+    - rid: 8638730069746122933
+    - rid: 8638730069746122934
+    - rid: 8638730069746122935
+    - rid: 8638730069746122936
+    - rid: 8638730069746122937
+    - rid: 8638730069746122938
     prompt: 
     choices: []
     endingId: 
@@ -693,7 +668,7 @@ MonoBehaviour:
     autoAdvanceSeconds: 0
     speakAloud: 0
     actions:
-    - rid: 4223013682560631134
+    - rid: 8638730069746122939
     prompt: 
     choices: []
     endingId: 
@@ -781,37 +756,44 @@ MonoBehaviour:
   - key: mother_memory
     displayName: Mother
     nameColor: {r: 1, g: 0.75, b: 0.85, a: 1}
-    actorKey: 
-    elevenLabsVoiceId: 
+    actorKey:
+    elevenLabsVoiceId:
+    memorySide: 2
+  - key: aisha_memory
+    displayName: Aisha
+    nameColor: {r: 0.45, g: 0.8, b: 1, a: 1}
+    actorKey:
+    elevenLabsVoiceId:
+    memorySide: 1
   references:
     version: 2
     RefIds:
-    - rid: 4223013682560631073
+    - rid: 8638730069746122877
       type: {class: SetPlayerControlAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
       data:
         runInParallel: 0
         allowControl: 0
-    - rid: 4223013682560631074
+    - rid: 8638730069746122878
       type: {class: FadeScreenAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
       data:
         runInParallel: 0
         toBlack: 1
         seconds: 0
         holdSeconds: 0
-    - rid: 4223013682560631075
+    - rid: 8638730069746122879
       type: {class: LetterboxAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
       data:
         runInParallel: 0
         on: 1
         seconds: 0
-    - rid: 4223013682560631076
+    - rid: 8638730069746122880
       type: {class: TeleportActorAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
       data:
         runInParallel: 0
         actorKey: aisha
         markerKey: m_aisha_start
         snapToGround: 1
-    - rid: 4223013682560631077
+    - rid: 8638730069746122881
       type: {class: CameraShotAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
       data:
         runInParallel: 0
@@ -819,7 +801,7 @@ MonoBehaviour:
         blendSeconds: 0
         lookAtActorKey: 
         letterbox: 1
-    - rid: 4223013682560631078
+    - rid: 8638730069746122882
       type: {class: PlaySoundAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
       data:
         runInParallel: 1
@@ -827,19 +809,19 @@ MonoBehaviour:
         volume: 1
         atMarkerKey: 
         waitForEnd: 0
-    - rid: 4223013682560631079
+    - rid: 8638730069746122883
       type: {class: FadeScreenAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
       data:
         runInParallel: 0
         toBlack: 0
         seconds: 1.5
         holdSeconds: 0
-    - rid: 4223013682560631080
+    - rid: 8638730069746122884
       type: {class: WaitAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
       data:
         runInParallel: 0
         seconds: 1
-    - rid: 4223013682560631081
+    - rid: 8638730069746122885
       type: {class: CameraShotAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
       data:
         runInParallel: 0
@@ -847,33 +829,43 @@ MonoBehaviour:
         blendSeconds: 1
         lookAtActorKey: aisha
         letterbox: 1
-    - rid: 4223013682560631082
+    - rid: 8638730069746122886
       type: {class: WaitAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
       data:
         runInParallel: 0
         seconds: 1.2
-    - rid: 4223013682560631083
+    - rid: 8638730069746122887
+      type: {class: MoveActorAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
+      data:
+        runInParallel: 0
+        actorKey: aisha
+        markerKey: m_aisha_gateout
+        run: 0
+        walkBackwards: 0
+        faceActorKeyOnArrive: 
+        faceSeconds: 0.35
+    - rid: 8638730069746122888
       type: {class: LetterboxAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
       data:
         runInParallel: 0
         on: 0
         seconds: 0.4
-    - rid: 4223013682560631084
+    - rid: 8638730069746122889
       type: {class: CameraReleaseAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
       data:
         runInParallel: 0
         blendSeconds: 0.8
-    - rid: 4223013682560631085
+    - rid: 8638730069746122890
       type: {class: SetObjectiveAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
       data:
         runInParallel: 0
         text: Walk home along the road.
-    - rid: 4223013682560631086
+    - rid: 8638730069746122891
       type: {class: SetPlayerControlAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
       data:
         runInParallel: 0
         allowControl: 1
-    - rid: 4223013682560631087
+    - rid: 8638730069746122892
       type: {class: WaitForPlayerAtMarkerAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
       data:
         runInParallel: 0
@@ -881,36 +873,36 @@ MonoBehaviour:
         radius: 3
         ignoreY: 1
         timeoutSeconds: 0
-    - rid: 4223013682560631088
+    - rid: 8638730069746122893
       type: {class: SetPlayerControlAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
       data:
         runInParallel: 0
         allowControl: 0
-    - rid: 4223013682560631089
+    - rid: 8638730069746122894
       type: {class: SetObjectiveAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
       data:
         runInParallel: 0
         text: 
-    - rid: 4223013682560631090
+    - rid: 8638730069746122895
       type: {class: LetterboxAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
       data:
         runInParallel: 0
         on: 1
         seconds: 0.4
-    - rid: 4223013682560631091
+    - rid: 8638730069746122896
       type: {class: SetActorActiveAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
       data:
         runInParallel: 0
         actorKey: stranger
         active: 1
-    - rid: 4223013682560631092
+    - rid: 8638730069746122897
       type: {class: TeleportActorAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
       data:
         runInParallel: 0
         actorKey: stranger
         markerKey: m_stranger_spawn
         snapToGround: 1
-    - rid: 4223013682560631093
+    - rid: 8638730069746122898
       type: {class: FramedShotAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
       data:
         runInParallel: 0
@@ -931,7 +923,7 @@ MonoBehaviour:
           serializedVersion: 2
           m_Bits: 4294967231
         obstructionRadius: 0.35
-    - rid: 4223013682560631094
+    - rid: 8638730069746122899
       type: {class: MoveActorAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
       data:
         runInParallel: 1
@@ -941,7 +933,7 @@ MonoBehaviour:
         walkBackwards: 0
         faceActorKeyOnArrive: aisha
         faceSeconds: 0.35
-    - rid: 4223013682560631095
+    - rid: 8638730069746122900
       type: {class: FaceAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
       data:
         runInParallel: 0
@@ -950,7 +942,7 @@ MonoBehaviour:
         targetMarkerKey: 
         seconds: 0.6
         instant: 0
-    - rid: 4223013682560631096
+    - rid: 8638730069746122901
       type: {class: FramedShotAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
       data:
         runInParallel: 0
@@ -971,7 +963,7 @@ MonoBehaviour:
           serializedVersion: 2
           m_Bits: 4294967231
         obstructionRadius: 0.35
-    - rid: 4223013682560631097
+    - rid: 8638730069746122902
       type: {class: MoveActorAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
       data:
         runInParallel: 0
@@ -981,7 +973,7 @@ MonoBehaviour:
         walkBackwards: 0
         faceActorKeyOnArrive: aisha
         faceSeconds: 0.35
-    - rid: 4223013682560631098
+    - rid: 8638730069746122903
       type: {class: FramedShotAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
       data:
         runInParallel: 0
@@ -1002,7 +994,7 @@ MonoBehaviour:
           serializedVersion: 2
           m_Bits: 4294967231
         obstructionRadius: 0.35
-    - rid: 4223013682560631099
+    - rid: 8638730069746122904
       type: {class: CameraMoveAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
       data:
         runInParallel: 0
@@ -1011,7 +1003,7 @@ MonoBehaviour:
         waitForEnd: 0
         shakeAmplitude: 0.012
         shakeDuration: 0.5
-    - rid: 4223013682560631100
+    - rid: 8638730069746122905
       type: {class: FramedShotAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
       data:
         runInParallel: 0
@@ -1031,7 +1023,7 @@ MonoBehaviour:
           serializedVersion: 2
           m_Bits: 4294967231
         obstructionRadius: 0.35
-    - rid: 4223013682560631101
+    - rid: 8638730069746122906
       type: {class: AnimatorParamAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
       data:
         runInParallel: 0
@@ -1041,7 +1033,7 @@ MonoBehaviour:
         boolValue: 0
         floatValue: 0
         holdSeconds: 1
-    - rid: 4223013682560631102
+    - rid: 8638730069746122907
       type: {class: AnimatorParamAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
       data:
         runInParallel: 0
@@ -1051,7 +1043,7 @@ MonoBehaviour:
         boolValue: 0
         floatValue: 0
         holdSeconds: 0.8
-    - rid: 4223013682560631103
+    - rid: 8638730069746122908
       type: {class: FramedShotAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
       data:
         runInParallel: 0
@@ -1071,7 +1063,7 @@ MonoBehaviour:
           serializedVersion: 2
           m_Bits: 4294967231
         obstructionRadius: 0.35
-    - rid: 4223013682560631104
+    - rid: 8638730069746122909
       type: {class: CameraMoveAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
       data:
         runInParallel: 0
@@ -1080,7 +1072,7 @@ MonoBehaviour:
         waitForEnd: 0
         shakeAmplitude: 0
         shakeDuration: 0.5
-    - rid: 4223013682560631105
+    - rid: 8638730069746122910
       type: {class: CameraShotAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
       data:
         runInParallel: 0
@@ -1088,7 +1080,7 @@ MonoBehaviour:
         blendSeconds: 1
         lookAtActorKey: 
         letterbox: 1
-    - rid: 4223013682560631106
+    - rid: 8638730069746122911
       type: {class: MoveActorAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
       data:
         runInParallel: 1
@@ -1098,7 +1090,7 @@ MonoBehaviour:
         walkBackwards: 0
         faceActorKeyOnArrive: 
         faceSeconds: 0.35
-    - rid: 4223013682560631107
+    - rid: 8638730069746122912
       type: {class: MoveActorAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
       data:
         runInParallel: 0
@@ -1108,14 +1100,14 @@ MonoBehaviour:
         walkBackwards: 0
         faceActorKeyOnArrive: 
         faceSeconds: 0.35
-    - rid: 4223013682560631108
+    - rid: 8638730069746122913
       type: {class: FadeScreenAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
       data:
         runInParallel: 0
         toBlack: 1
         seconds: 2
         holdSeconds: 0
-    - rid: 4223013682560631109
+    - rid: 8638730069746122914
       type: {class: MoveActorAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
       data:
         runInParallel: 0
@@ -1125,7 +1117,7 @@ MonoBehaviour:
         walkBackwards: 1
         faceActorKeyOnArrive: 
         faceSeconds: 0.35
-    - rid: 4223013682560631110
+    - rid: 8638730069746122915
       type: {class: AnimatorParamAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
       data:
         runInParallel: 0
@@ -1135,7 +1127,7 @@ MonoBehaviour:
         boolValue: 0
         floatValue: 0
         holdSeconds: 0.5
-    - rid: 4223013682560631111
+    - rid: 8638730069746122916
       type: {class: MoveActorAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
       data:
         runInParallel: 0
@@ -1145,40 +1137,40 @@ MonoBehaviour:
         walkBackwards: 0
         faceActorKeyOnArrive: 
         faceSeconds: 0.35
-    - rid: 4223013682560631112
+    - rid: 8638730069746122917
       type: {class: FadeScreenAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
       data:
         runInParallel: 0
         toBlack: 1
         seconds: 1.2
         holdSeconds: 0
-    - rid: 4223013682560631113
+    - rid: 8638730069746122918
       type: {class: TeleportActorAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
       data:
         runInParallel: 0
         actorKey: aisha
         markerKey: m_home_door
         snapToGround: 1
-    - rid: 4223013682560631114
+    - rid: 8638730069746122919
       type: {class: SetActorActiveAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
       data:
         runInParallel: 0
         actorKey: stranger
         active: 0
-    - rid: 4223013682560631115
+    - rid: 8638730069746122920
       type: {class: SetActorActiveAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
       data:
         runInParallel: 0
         actorKey: mother
         active: 1
-    - rid: 4223013682560631116
+    - rid: 8638730069746122921
       type: {class: TeleportActorAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
       data:
         runInParallel: 0
         actorKey: mother
         markerKey: m_mother_door
         snapToGround: 1
-    - rid: 4223013682560631117
+    - rid: 8638730069746122922
       type: {class: FramedShotAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
       data:
         runInParallel: 0
@@ -1199,14 +1191,14 @@ MonoBehaviour:
           serializedVersion: 2
           m_Bits: 4294967231
         obstructionRadius: 0.35
-    - rid: 4223013682560631118
+    - rid: 8638730069746122923
       type: {class: FadeScreenAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
       data:
         runInParallel: 0
         toBlack: 0
         seconds: 1
         holdSeconds: 0
-    - rid: 4223013682560631119
+    - rid: 8638730069746122924
       type: {class: FramedShotAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
       data:
         runInParallel: 0
@@ -1227,7 +1219,7 @@ MonoBehaviour:
           serializedVersion: 2
           m_Bits: 4294967231
         obstructionRadius: 0.35
-    - rid: 4223013682560631120
+    - rid: 8638730069746122925
       type: {class: FaceAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
       data:
         runInParallel: 0
@@ -1236,7 +1228,7 @@ MonoBehaviour:
         targetMarkerKey: 
         seconds: 0.6
         instant: 0
-    - rid: 4223013682560631121
+    - rid: 8638730069746122926
       type: {class: FramedShotAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
       data:
         runInParallel: 1
@@ -1257,7 +1249,7 @@ MonoBehaviour:
           serializedVersion: 2
           m_Bits: 4294967231
         obstructionRadius: 0.35
-    - rid: 4223013682560631122
+    - rid: 8638730069746122927
       type: {class: MoveActorAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
       data:
         runInParallel: 0
@@ -1267,7 +1259,7 @@ MonoBehaviour:
         walkBackwards: 0
         faceActorKeyOnArrive: teacher
         faceSeconds: 0.35
-    - rid: 4223013682560631123
+    - rid: 8638730069746122928
       type: {class: FaceAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
       data:
         runInParallel: 0
@@ -1276,7 +1268,7 @@ MonoBehaviour:
         targetMarkerKey: 
         seconds: 0.4
         instant: 0
-    - rid: 4223013682560631124
+    - rid: 8638730069746122929
       type: {class: AnimatorParamAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
       data:
         runInParallel: 0
@@ -1286,7 +1278,7 @@ MonoBehaviour:
         boolValue: 0
         floatValue: 0
         holdSeconds: 0.8
-    - rid: 4223013682560631125
+    - rid: 8638730069746122930
       type: {class: MoveActorAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
       data:
         runInParallel: 0
@@ -1296,33 +1288,33 @@ MonoBehaviour:
         walkBackwards: 0
         faceActorKeyOnArrive: 
         faceSeconds: 0.35
-    - rid: 4223013682560631126
+    - rid: 8638730069746122931
       type: {class: SetActorActiveAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
       data:
         runInParallel: 0
         actorKey: stranger
         active: 0
-    - rid: 4223013682560631127
+    - rid: 8638730069746122932
       type: {class: FadeScreenAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
       data:
         runInParallel: 0
         toBlack: 1
         seconds: 0.8
         holdSeconds: 0.4
-    - rid: 4223013682560631128
+    - rid: 8638730069746122933
       type: {class: SetActorActiveAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
       data:
         runInParallel: 0
         actorKey: mother
         active: 1
-    - rid: 4223013682560631129
+    - rid: 8638730069746122934
       type: {class: TeleportActorAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
       data:
         runInParallel: 0
         actorKey: mother
         markerKey: m_mother_arrive_spawn
         snapToGround: 1
-    - rid: 4223013682560631130
+    - rid: 8638730069746122935
       type: {class: FramedShotAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
       data:
         runInParallel: 0
@@ -1343,14 +1335,14 @@ MonoBehaviour:
           serializedVersion: 2
           m_Bits: 4294967231
         obstructionRadius: 0.35
-    - rid: 4223013682560631131
+    - rid: 8638730069746122936
       type: {class: FadeScreenAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
       data:
         runInParallel: 0
         toBlack: 0
         seconds: 0.8
         holdSeconds: 0
-    - rid: 4223013682560631132
+    - rid: 8638730069746122937
       type: {class: MoveActorAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
       data:
         runInParallel: 0
@@ -1360,7 +1352,7 @@ MonoBehaviour:
         walkBackwards: 0
         faceActorKeyOnArrive: aisha
         faceSeconds: 0.35
-    - rid: 4223013682560631133
+    - rid: 8638730069746122938
       type: {class: FramedShotAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
       data:
         runInParallel: 0
@@ -1381,7 +1373,7 @@ MonoBehaviour:
           serializedVersion: 2
           m_Bits: 4294967231
         obstructionRadius: 0.35
-    - rid: 4223013682560631134
+    - rid: 8638730069746122939
       type: {class: AnimatorParamAction, ns: ShinyMinds.Missions.Data, asm: Assembly-CSharp}
       data:
         runInParallel: 0

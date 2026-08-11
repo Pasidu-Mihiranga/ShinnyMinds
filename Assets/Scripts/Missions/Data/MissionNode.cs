@@ -15,7 +15,16 @@ namespace ShinyMinds.Missions.Data
         /// <summary>The player picks an option with the mouse.</summary>
         Choice,
         /// <summary>Shows the ending card, then retries or returns to free roam.</summary>
-        Ending
+        Ending,
+        /// <summary>
+        /// A line the speaker is remembering, not saying now. Shown inside the memory
+        /// bubble, acted out by the stand-ins on the memory stage. Consecutive Memory
+        /// nodes share one bubble; it opens on the first and closes after the last.
+        ///
+        /// Appended rather than slotted next to Thought on purpose — the enum is
+        /// serialized by value, and inserting would renumber every mission asset.
+        /// </summary>
+        Memory
     }
 
     [Serializable]
@@ -26,7 +35,7 @@ namespace ShinyMinds.Missions.Data
 
         public MissionNodeKind kind = MissionNodeKind.Line;
 
-        [Header("Line / Thought")]
+        [Header("Line / Thought / Memory")]
         [Tooltip("Key into MissionData.speakers.")]
         public string speakerKey;
         [TextArea(2, 5)] public string text;

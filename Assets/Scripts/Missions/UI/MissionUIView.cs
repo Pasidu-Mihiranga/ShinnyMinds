@@ -18,16 +18,44 @@ namespace ShinyMinds.Missions.UI
     public class MissionUIView : MonoBehaviour, IMissionUi
     {
         [Header("Dialogue")]
+        [Tooltip("The subtitle bar. Only used for speakers with no body in the scene — " +
+                 "the narrator — since everyone else gets a speech balloon over their head.")]
         [SerializeField] GameObject dialoguePanel;
         [SerializeField] TMP_Text speakerLabel;
         [SerializeField] TMP_Text lineText;
         [SerializeField] TypewriterText lineTypewriter;
         [SerializeField] TMP_Text continuePrompt;
 
+        [Header("Speech balloon")]
+        [SerializeField] WorldSpeechBubble worldBubble;
+        [SerializeField] TMP_Text worldContinuePrompt;
+
         [Header("Thought bubble")]
         [SerializeField] GameObject thoughtPanel;
         [SerializeField] TMP_Text thoughtText;
         [SerializeField] TypewriterText thoughtTypewriter;
+
+        [Header("Memory bubble")]
+        [Tooltip("The whole remembered-scene overlay: dimmer, bubble, tail dots.")]
+        [SerializeField] GameObject memoryPanel;
+        [SerializeField] CanvasGroup memoryGroup;
+        [Tooltip("Scaled up slightly as the memory opens, so it swells into view.")]
+        [SerializeField] RectTransform memoryBubble;
+        [Tooltip("Sizes the oval and keeps it, and its trail of dots, next to whoever is " +
+                 "remembering or thinking.")]
+        [SerializeField] MemoryBubbleAnchor memoryAnchor;
+        [Tooltip("The masked oval showing the memory stage. Switched off for a thought, " +
+                 "which has no stage behind it — only the paper and one balloon.")]
+        [SerializeField] GameObject memoryStageView;
+        [SerializeField] MemoryBubble memoryLeft;
+        [SerializeField] MemoryBubble memoryRight;
+        [Tooltip("One balloon centred in the bubble, for a thought: nobody is on stage, so " +
+                 "there is no side for it to belong to.")]
+        [SerializeField] MemoryBubble memoryThought;
+        [Tooltip("The dialogue panel's own prompt is hidden with that panel, so the " +
+                 "memory bubble carries a second one.")]
+        [SerializeField] TMP_Text memoryContinuePrompt;
+        [SerializeField] float memoryFadeSeconds = 0.45f;
 
         [Header("Choices")]
         [SerializeField] GameObject choicePanel;
@@ -44,9 +72,15 @@ namespace ShinyMinds.Missions.UI
         [SerializeField] Image fadeOverlay;
         [SerializeField] RectTransform letterboxTop;
         [SerializeField] RectTransform letterboxBottom;
-        [SerializeField] float letterboxHeight = 110f;
+        // 0 disables the cinematic bars: SetLetterbox then animates 0 -> 0 and early-outs,
+        // so LetterboxAction and letterboxed shots become no-ops. Set to 110 to bring them back.
+        [SerializeField] float letterboxHeight = 0f;
 
-        bool thoughtActive;
+        /// <summary>Which panel the line currently on screen is being typed into.</summary>
+        enum LineMode { Dialogue, Thought, Memory, World }
+
+        LineMode mode = LineMode.Dialogue;
+        MemoryBubble activeMemoryBubble;
         Coroutine letterboxRoutine;
 
         void Awake() => HideAll();
@@ -54,17 +88,38 @@ namespace ShinyMinds.Missions.UI
         // ------------------------------------------------------------------ lines
 
         public void ShowLine(bool isThought, SpeakerProfile speaker, string text)
-        {
-            thoughtActive = isThought;
+            => ShowLine(isThought, speaker, text, null, null);
 
-            if (isThought)
+        /// <param name="speakerBody">
+        /// The speaker's transform in the scene, if they have one. Given it and a camera,
+        /// the line goes into a balloon over their head instead of the subtitle bar.
+        /// </param>
+        public void ShowLine(bool isThought, SpeakerProfile speaker, string text,
+                             Transform speakerBody, Camera worldCamera)
+        {
+            bool overhead = !isThought && worldBubble != null
+                            && speakerBody != null && worldCamera != null;
+
+            mode = isThought ? LineMode.Thought
+                 : overhead ? LineMode.World
+                 : LineMode.Dialogue;
+
+            if (overhead)
+            {
+                SetActive(dialoguePanel, false);
+                SetActive(thoughtPanel, false);
+                worldBubble.Show(text, speakerBody, worldCamera);
+            }
+            else if (isThought)
             {
                 SetActive(dialoguePanel, false);
                 SetActive(thoughtPanel, true);
+                worldBubble?.Hide();
                 if (thoughtText != null) thoughtText.text = text;
             }
             else
             {
+                worldBubble?.Hide();
                 SetActive(thoughtPanel, false);
                 SetActive(dialoguePanel, true);
 
@@ -84,7 +139,15 @@ namespace ShinyMinds.Missions.UI
 
         public IEnumerator PlayTypewriter(string text, float charsPerSecond, Func<bool> skipRequested)
         {
-            TypewriterText writer = thoughtActive ? thoughtTypewriter : lineTypewriter;
+            TypewriterText writer;
+
+            switch (mode)
+            {
+                case LineMode.Thought: writer = thoughtTypewriter; break;
+                case LineMode.Memory: writer = activeMemoryBubble != null ? activeMemoryBubble.Typewriter : null; break;
+                case LineMode.World: writer = worldBubble != null ? worldBubble.Typewriter : null; break;
+                default: writer = lineTypewriter; break;
+            }
 
             if (writer == null)
                 yield break;
@@ -92,19 +155,186 @@ namespace ShinyMinds.Missions.UI
             yield return writer.Play(text, charsPerSecond, skipRequested);
         }
 
+        /// <summary>
+        /// Each panel carries its own prompt, so only the one belonging to whatever is on
+        /// screen is set and the other two are cleared.
+        /// </summary>
         public void ShowContinuePrompt(string text)
         {
-            if (continuePrompt == null) return;
+            SetPrompt(continuePrompt, mode == LineMode.Dialogue || mode == LineMode.Thought ? text : string.Empty);
+            SetPrompt(memoryContinuePrompt, mode == LineMode.Memory ? text : string.Empty);
+            SetPrompt(worldContinuePrompt, mode == LineMode.World ? text : string.Empty);
+        }
 
-            continuePrompt.text = text;
-            continuePrompt.gameObject.SetActive(!string.IsNullOrEmpty(text));
+        static void SetPrompt(TMP_Text prompt, string text)
+        {
+            if (prompt == null) return;
+
+            prompt.text = text;
+            prompt.gameObject.SetActive(!string.IsNullOrEmpty(text));
         }
 
         public void HideLine()
         {
+            // A remembered line stays up, faded, until the memory itself closes — the
+            // two lines are one exchange, and blanking the balloon between them would
+            // read as two unrelated captions.
+            if (mode == LineMode.Memory)
+            {
+                activeMemoryBubble?.Dim();
+                return;
+            }
+
             SetActive(dialoguePanel, false);
             SetActive(thoughtPanel, false);
-            thoughtActive = false;
+            worldBubble?.Hide();
+            mode = LineMode.Dialogue;
+        }
+
+        // ----------------------------------------------------------------- memory
+
+        public bool HasMemoryPanel => memoryPanel != null;
+
+        /// <summary>True once the prefab carries the centred balloon a thought needs.</summary>
+        public bool HasMemoryThought => memoryPanel != null && memoryThought != null;
+
+        /// <summary>
+        /// Swells the memory bubble into view over the dimmed world. The stage behind
+        /// the render texture should already be switched on, or the bubble opens onto
+        /// a blank frame.
+        /// </summary>
+        /// <param name="withStage">
+        /// False for a thought, which has nobody to show. Decided here rather than when the
+        /// line arrives, because the bubble has to be showing the right thing — and be the
+        /// right size — before it swells, otherwise the opening frames flash the last
+        /// memory's picture or resize under the player mid-fade.
+        /// </param>
+        /// <param name="owner">Whose memory or thought this is. The oval sits beside them.</param>
+        public IEnumerator OpenMemory(bool withStage, Transform owner, Camera worldCamera)
+        {
+            if (memoryPanel == null)
+                yield break;
+
+            memoryLeft?.Hide();
+            memoryRight?.Hide();
+            memoryThought?.Hide();
+            activeMemoryBubble = null;
+
+            SetActive(memoryStageView, withStage);
+
+            SetActive(memoryPanel, true);
+            memoryAnchor?.Attach(owner, worldCamera, withStage);
+
+            yield return FadeMemory(0f, 1f, 0.86f, 1f);
+        }
+
+        public IEnumerator CloseMemory()
+        {
+            if (memoryPanel == null || !memoryPanel.activeSelf)
+                yield break;
+
+            yield return FadeMemory(1f, 0f, 1f, 0.94f);
+
+            HideMemoryImmediate();
+        }
+
+        /// <summary>
+        /// Puts a remembered line in the balloon over the stand-in who is speaking, and
+        /// fades the other balloon back if it is still holding the previous line.
+        /// </summary>
+        public void ShowMemoryLine(SpeakerProfile speaker, MemorySide side, string text)
+        {
+            // A prefab built before the memory box exists still has to play the line.
+            if (memoryPanel == null)
+            {
+                ShowLine(false, speaker, text);
+                return;
+            }
+
+            mode = LineMode.Memory;
+
+            // A thought may have left the picture switched off in this same bubble.
+            SetActive(memoryStageView, true);
+            memoryThought?.Hide();
+
+            MemoryBubble speaking = side == MemorySide.Right ? memoryRight : memoryLeft;
+            MemoryBubble other = side == MemorySide.Right ? memoryLeft : memoryRight;
+
+            other?.Dim();
+
+            activeMemoryBubble = speaking;
+            speaking?.Show(speaker, text);
+
+            ShowContinuePrompt(string.Empty);
+        }
+
+        /// <summary>
+        /// A thought, staged in the memory bubble: the same dimmed world, the same warm oval
+        /// and trail of dots back to the girl, but empty of people. What Aisha is thinking is
+        /// not a scene she can watch, so the picture is switched off and the line gets the
+        /// paper to itself in one centred balloon.
+        /// </summary>
+        public void ShowMemoryThought(string text)
+        {
+            // A prefab built before the thought balloon exists still has to play the line.
+            if (memoryPanel == null || memoryThought == null)
+            {
+                ShowLine(true, null, text);
+                return;
+            }
+
+            mode = LineMode.Memory;
+
+            SetActive(memoryStageView, false);
+            memoryLeft?.Hide();
+            memoryRight?.Hide();
+
+            activeMemoryBubble = memoryThought;
+            memoryThought.Show(null, text);
+
+            ShowContinuePrompt(string.Empty);
+        }
+
+        void HideMemoryImmediate()
+        {
+            memoryAnchor?.Detach();
+            memoryLeft?.Hide();
+            memoryRight?.Hide();
+            memoryThought?.Hide();
+            activeMemoryBubble = null;
+
+            // Back to the authored state, so the next memory does not inherit a thought's
+            // empty bubble.
+            SetActive(memoryStageView, true);
+
+            if (memoryGroup != null) memoryGroup.alpha = 1f;
+            if (memoryBubble != null) memoryBubble.localScale = Vector3.one;
+
+            SetActive(memoryPanel, false);
+
+            if (mode == LineMode.Memory) mode = LineMode.Dialogue;
+        }
+
+        IEnumerator FadeMemory(float fromAlpha, float toAlpha, float fromScale, float toScale)
+        {
+            if (memoryFadeSeconds > 0f)
+            {
+                float t = 0f;
+                while (t < 1f)
+                {
+                    t += Time.deltaTime / memoryFadeSeconds;
+                    float e = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(t));
+
+                    if (memoryGroup != null) memoryGroup.alpha = Mathf.Lerp(fromAlpha, toAlpha, e);
+                    if (memoryBubble != null)
+                        memoryBubble.localScale = Vector3.one * Mathf.Lerp(fromScale, toScale, e);
+
+                    yield return null;
+                }
+            }
+
+            if (memoryGroup != null) memoryGroup.alpha = toAlpha;
+            if (memoryBubble != null) memoryBubble.localScale = Vector3.one * toScale;
         }
 
         // ---------------------------------------------------------------- choices
@@ -138,6 +368,7 @@ namespace ShinyMinds.Missions.UI
 
         public void ShowEnding(MissionEnding ending, Action onRetry, Action onContinue)
         {
+            HideMemoryImmediate();      // an ending card must never land on a dimmed memory
             HideLine();
             HideChoices();
             endingCard?.Show(ending, onRetry, onContinue);
@@ -224,6 +455,7 @@ namespace ShinyMinds.Missions.UI
 
         public void HideAll()
         {
+            HideMemoryImmediate();      // before HideLine, which leaves a memory line up
             HideLine();
             HideChoices();
             HideEnding();

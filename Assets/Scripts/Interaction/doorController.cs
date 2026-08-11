@@ -80,10 +80,12 @@ public class DoorController : MonoBehaviour
 
         if (playerNearby && promptText != null)
         {
+            // "Press E to Open Door" on a keyboard, "Touch to Open Door" on a phone.
             promptText.text =
-                isOpen
-                ? "Press E to Close Door"
-                : "Press E to Open Door";
+                InteractKey.AdvanceLabel +
+                (isOpen
+                ? " to Close Door"
+                : " to Open Door");
         }
 
         if (playerNearby && InteractKey.TryConsumeWorld())

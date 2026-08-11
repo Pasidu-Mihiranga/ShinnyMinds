@@ -159,134 +159,113 @@ public class PlayerController : MonoBehaviour
     // UPDATE LOOP
     // =========================
     void Update()
+{
+    float speed = 0f;
+
+    bool turningLeft = false;
+    bool turningRight = false;
+    bool movingBackward = false;
+
+    Vector3 horizontalMove = Vector3.zero;
+
+    // -----------------------------
+    // Keyboard Input
+    // -----------------------------
+    float horizontalInput = Input.GetAxisRaw("Horizontal");
+    float verticalInput = Input.GetAxisRaw("Vertical");
+
+    bool run = Input.GetKey(KeyCode.LeftShift);
+    bool jump = Input.GetKeyDown(KeyCode.Space);
+
+    // -----------------------------
+    // Mobile Input
+    // -----------------------------
+    // Whichever source is pushed further wins, so a resting stick can never cancel the
+    // keyboard and a held key can never pin the stick. MobileInput.JumpTapped is already
+    // a single-frame edge, matching GetKeyDown.
+    if (Mathf.Abs(MobileInput.AxisH) > Mathf.Abs(horizontalInput))
+        horizontalInput = MobileInput.AxisH;
+
+    if (Mathf.Abs(MobileInput.AxisV) > Mathf.Abs(verticalInput))
+        verticalInput = MobileInput.AxisV;
+
+    run = run || MobileInput.RunHeld;
+    jump = jump || MobileInput.JumpTapped;
+
+    // -----------------------------
+    // Turn Left / Right
+    // -----------------------------
+    // Rotation scales with how far the stick is pushed. The keyboard still reads +/-1
+    // from GetAxisRaw, so its turn rate is unchanged.
+    if (Mathf.Abs(horizontalInput) > 0.2f)
     {
-        float speed = 0f;
+        turningLeft = horizontalInput < 0f;
+        turningRight = horizontalInput > 0f;
 
-        bool turningLeft = false;
-        bool turningRight = false;
-        bool movingBackward = false;
-
-        Vector3 horizontalMove = Vector3.zero;
-
-        // TURN LEFT
-        if (Input.GetKey(KeyCode.A))
-        {
-            turningLeft = true;
-
-            transform.Rotate(
-                0,
-                -turnSpeed * Time.deltaTime,
-                0
-            );
-        }
-
-        // TURN RIGHT
-        if (Input.GetKey(KeyCode.D))
-        {
-            turningRight = true;
-
-            transform.Rotate(
-                0,
-                turnSpeed * Time.deltaTime,
-                0
-            );
-        }
-
-        // WALK FORWARD
-        if (Input.GetKey(KeyCode.W))
-        {
-            speed = 2f;
-
-            horizontalMove =
-                transform.forward
-                * walkSpeed;
-        }
-
-        // RUN
-        if (
-            Input.GetKey(KeyCode.LeftShift)
-            &&
-            Input.GetKey(KeyCode.W)
-        )
-        {
-            speed = 6f;
-
-            horizontalMove =
-                transform.forward
-                * runSpeed;
-        }
-
-        // WALK BACKWARD
-        if (Input.GetKey(KeyCode.S))
-        {
-            movingBackward = true;
-
-            horizontalMove =
-                -transform.forward
-                * backwardSpeed;
-        }
-
-        // KEEP CHARACTER GROUNDED
-        if (
-            controller.isGrounded
-            &&
-            verticalVelocity < 0f
-        )
-        {
-            verticalVelocity = -2f;
-        }
-
-        // JUMP
-        if (
-            Input.GetKeyDown(KeyCode.Space)
-            &&
-            controller.isGrounded
-        )
-        {
-            animator.SetTrigger("Jump");
-
-            verticalVelocity = 7f;
-
-            isJumping = true;
-        }
-
-        verticalVelocity +=
-            gravity * Time.deltaTime;
-
-        Vector3 finalMove =
-            horizontalMove * Time.deltaTime
-            +
-            Vector3.up
-            * verticalVelocity * Time.deltaTime;
-
-        controller.Move(finalMove);
-
-        if (controller.isGrounded)
-        {
-            isJumping = false;
-        }
-
-        // ANIMATOR
-        animator.SetFloat(
-            "Speed",
-            speed
-        );
-
-        animator.SetBool(
-            "TurnLeft",
-            turningLeft
-        );
-
-        animator.SetBool(
-            "TurnRight",
-            turningRight
-        );
-
-        animator.SetBool(
-            "Backward",
-            movingBackward
-        );
+        transform.Rotate(0, turnSpeed * horizontalInput * Time.deltaTime, 0);
     }
 
-    
+    // -----------------------------
+    // Move Forward
+    // -----------------------------
+    if (verticalInput > 0.2f)
+    {
+        if (run)
+        {
+            speed = 6f;
+            horizontalMove = transform.forward * runSpeed;
+        }
+        else
+        {
+            speed = 2f;
+            horizontalMove = transform.forward * walkSpeed;
+        }
+    }
+
+    // -----------------------------
+    // Move Backward
+    // -----------------------------
+    if (verticalInput < -0.2f)
+    {
+        movingBackward = true;
+        horizontalMove = -transform.forward * backwardSpeed;
+    }
+
+    // -----------------------------
+    // Gravity
+    // -----------------------------
+    if (controller.isGrounded && verticalVelocity < 0)
+        verticalVelocity = -2f;
+
+    // -----------------------------
+    // Jump
+    // -----------------------------
+    if (jump && controller.isGrounded)
+    {
+        if (animator != null)
+            animator.SetTrigger("Jump");
+
+        verticalVelocity = 7f;
+        isJumping = true;
+    }
+
+    verticalVelocity += gravity * Time.deltaTime;
+
+    Vector3 finalMove =
+        horizontalMove * Time.deltaTime +
+        Vector3.up * verticalVelocity * Time.deltaTime;
+
+    controller.Move(finalMove);
+
+    if (controller.isGrounded)
+        isJumping = false;
+
+    // -----------------------------
+    // Animator
+    // -----------------------------
+    animator.SetFloat("Speed", speed);
+    animator.SetBool("TurnLeft", turningLeft);
+    animator.SetBool("TurnRight", turningRight);
+    animator.SetBool("Backward", movingBackward);
+}
 }

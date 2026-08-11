@@ -107,12 +107,5 @@ namespace ShinyMinds.Missions.EditorTools
 
             Debug.Log("Placed an inactive Stranger under the staging root.");
         }
-
-        static void SetLayerRecursive(GameObject go, int layer)
-        {
-            go.layer = layer;
-            foreach (Transform child in go.transform)
-                SetLayerRecursive(child.gameObject, layer);
-        }
     }
 }

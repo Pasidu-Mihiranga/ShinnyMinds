@@ -73,7 +73,8 @@ namespace ShinyMinds.Missions.EditorTools
                 ("cameraDirector", director),
                 ("sfx", sfx),
                 ("typewriterCharsPerSecond", 45f),
-                ("continuePromptText", "Press E"));
+                ("continuePromptText", "Press E"),
+                ("touchContinuePromptText", "Touch"));
 
             // mainCamera and playerTransform are scene objects, so they are assigned on
             // the instance in step 3, not baked into the prefab.
@@ -112,6 +113,7 @@ namespace ShinyMinds.Missions.EditorTools
             EnsureMissionSystem(player);
             Transform staging = EnsureStaging(player);
             MissionCharacterBuilder.EnsureStrangerInScene(staging);
+            MissionMemoryStageBuilder.EnsureStage();
             WireOtherActors(layer);
             FixCameraCollision(layer);
 
@@ -136,31 +138,7 @@ namespace ShinyMinds.Missions.EditorTools
 
         // ------------------------------------------------------------------ helpers
 
-        static int EnsureCameraIgnoreLayer()
-        {
-            int existing = LayerMask.NameToLayer("CameraIgnore");
-            if (existing >= 0) return existing;
-
-            var tagManager = new SerializedObject(
-                AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/TagManager.asset")[0]);
-            SerializedProperty layers = tagManager.FindProperty("layers");
-
-            // 0-7 are reserved by Unity; MapIcon already sits at 3.
-            for (int i = 8; i < layers.arraySize; i++)
-            {
-                SerializedProperty slot = layers.GetArrayElementAtIndex(i);
-                if (string.IsNullOrEmpty(slot.stringValue))
-                {
-                    slot.stringValue = "CameraIgnore";
-                    tagManager.ApplyModifiedProperties();
-                    Debug.Log($"Added layer 'CameraIgnore' at index {i}.");
-                    return i;
-                }
-            }
-
-            Debug.LogError("No free user layer for 'CameraIgnore'.");
-            return -1;
-        }
+        static int EnsureCameraIgnoreLayer() => EnsureLayer("CameraIgnore");
 
         static void WirePlayer(GameObject player, int layer)
         {

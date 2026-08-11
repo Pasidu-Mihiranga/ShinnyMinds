@@ -19,13 +19,18 @@ public class footstepaudio : MonoBehaviour
     {
         bool jumping = !controller.isGrounded;
 
-        bool walking =
-            Input.GetKey(KeyCode.W) ||
-            Input.GetKey(KeyCode.S);
+        // Mirrors PlayerController's own 0.2 threshold, so the loop starts on the same
+        // frame the character does. Reading the stick as well as the keys is what keeps
+        // footsteps audible on touch, where W and S are never pressed.
+        float forward = Mathf.Abs(Input.GetAxisRaw("Vertical")) > 0.2f
+            ? Input.GetAxisRaw("Vertical")
+            : MobileInput.AxisV;
+
+        bool walking = Mathf.Abs(forward) > 0.2f;
 
         bool running =
-            Input.GetKey(KeyCode.W) &&
-            Input.GetKey(KeyCode.LeftShift);
+            forward > 0.2f &&
+            (Input.GetKey(KeyCode.LeftShift) || MobileInput.RunHeld);
 
         // Stop footsteps while jumping
         if (jumping)

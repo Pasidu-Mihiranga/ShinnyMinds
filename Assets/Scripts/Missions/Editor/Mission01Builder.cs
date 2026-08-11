@@ -98,11 +98,21 @@ namespace ShinyMinds.Missions.EditorTools
                     key = "mother", displayName = "Mother", actorKey = "mother",
                     nameColor = new Color(1.00f, 0.75f, 0.85f)
                 },
-                // Heard in Scene 1 as a remembered voice — she has no body in the world yet.
+                // Scene 1's kitchen exchange is a memory, not a conversation happening at
+                // the gate. Both halves of it are spoken by the stand-ins on the memory
+                // stage, so neither profile drives an actor in the world — Aisha's body is
+                // busy being the player, standing there remembering it.
                 new SpeakerProfile
                 {
                     key = "mother_memory", displayName = "Mother", actorKey = "",
-                    nameColor = new Color(1.00f, 0.75f, 0.85f)
+                    nameColor = new Color(1.00f, 0.75f, 0.85f),
+                    memorySide = MemorySide.Right
+                },
+                new SpeakerProfile
+                {
+                    key = "aisha_memory", displayName = "Aisha", actorKey = "",
+                    nameColor = new Color(0.45f, 0.80f, 1.00f),
+                    memorySide = MemorySide.Left
                 },
             };
         }
@@ -156,7 +166,7 @@ namespace ShinyMinds.Missions.EditorTools
 
         static void BuildScene1(List<MissionNode> n)
         {
-            n.Add(Cutscene("s1_open", "s1_narr",
+            n.Add(Cutscene("s1_open", "s1_mother",
                 Control(false),
                 Fade(true, 0f),
                 Letterbox(true, 0f),
@@ -166,23 +176,30 @@ namespace ShinyMinds.Missions.EditorTools
                 Fade(false, 1.5f),
                 Wait(1.0f)));
 
+            // The two scene-setting narrator lines that used to open here were cut, so
+            // s1_open now hands straight to the memory.
+
+            // This exchange happened at home that morning — it is what Aisha is
+            // remembering as she leaves, not something anyone says at the gate. Memory
+            // nodes play it inside the memory bubble, acted out by the stand-ins, and
+            // the bubble stays up across both lines because they are one conversation.
+            //
             // Lines are kept to roughly 42 characters a line, two lines maximum. Long
             // single lines are the main readability failure for a young reader.
-            n.Add(Line("s1_narr", "narrator",
-                "A warm Tuesday afternoon.\nThe final school bell rings.", "s1_narr2"));
-
-            n.Add(Line("s1_narr2", "narrator",
-                "Children pour out of the gates,\nlaughing and talking.", "s1_mother"));
-
-            n.Add(Line("s1_mother", "mother_memory",
+            n.Add(Memory("s1_mother", "mother_memory",
                 "Come straight home after school, Aisha.", "s1_aisha"));
 
-            n.Add(Line("s1_aisha", "aisha",
+            n.Add(Memory("s1_aisha", "aisha_memory",
                 "Okay, Ammi.", "s1_setoff"));
 
             n.Add(Cutscene("s1_setoff", "s1_walk",
                 Shot("m_cam_aisha_cu", 1.0f, "aisha"),
                 Wait(1.2f),
+                // Walk her clear of the entrance before handing control back. The gameplay
+                // camera rides 2.45m off her back (0.49 local x the rig's scale of 5), so
+                // releasing while she stands in the doorway puts the lens inside the school
+                // and the door fills the screen. She has to be out on the forecourt first.
+                Move("aisha", "m_aisha_gateout"),
                 Letterbox(false, 0.4f),
                 CameraRelease(0.8f),
                 Objective("Walk home along the road."),
@@ -387,6 +404,17 @@ namespace ShinyMinds.Missions.EditorTools
             new MissionNode
             {
                 id = id, kind = MissionNodeKind.Thought,
+                speakerKey = speaker, text = text, nextId = next,
+            };
+
+        /// <summary>
+        /// A remembered line. The speaker's memorySide decides which stand-in says it;
+        /// runs of these share one bubble, so keep a remembered exchange contiguous.
+        /// </summary>
+        static MissionNode Memory(string id, string speaker, string text, string next) =>
+            new MissionNode
+            {
+                id = id, kind = MissionNodeKind.Memory,
                 speakerKey = speaker, text = text, nextId = next,
             };
 

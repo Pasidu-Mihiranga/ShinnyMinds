@@ -656,7 +656,7 @@ Animator:
   m_GameObject: {fileID: 1960169931316139952}
   m_Enabled: 1
   m_Avatar: {fileID: 9000000, guid: cd387539d7ecd164ebf0a43c45a524d3, type: 3}
-  m_Controller: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: 1a36d64b60374124a8fccd180d6760da, type: 2}
   m_CullingMode: 1
   m_UpdateMode: 0
   m_ApplyRootMotion: 0
@@ -696,6 +696,8 @@ MonoBehaviour:
   groundMask:
     serializedVersion: 2
     m_Bits: 63
+  useRootMotion: 0
+  rootMotionTimeout: 20
   characterController: {fileID: 0}
   ccGravity: 4
 --- !u!114 &7253856333671127739

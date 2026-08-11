@@ -15,6 +15,7 @@ namespace ShinyMinds.Missions.Runtime
     public class MissionCameraDirector : MonoBehaviour, IMissionCamera
     {
         [SerializeField] Camera mainCamera;
+        [SerializeField] private GameObject mapArrow;
         [Tooltip("Root-level camera with its Camera component disabled and NO AudioListener.")]
         [SerializeField] Camera cutsceneCamera;
         [SerializeField] UI.MissionUIView ui;
@@ -33,6 +34,16 @@ namespace ShinyMinds.Missions.Runtime
         Coroutine pushRoutine;
 
         public bool HasControl => hasControl;
+
+        /// <summary>
+        /// The camera actually drawing the world right now. Anything projecting a world
+        /// point onto the screen has to ask for this rather than reaching for Camera.main:
+        /// for the length of a cutscene the main camera is switched off and this one is
+        /// somewhere else entirely, so main would place a speech balloon over thin air.
+        /// </summary>
+        public Camera ActiveCamera =>
+            hasControl && cutsceneCamera != null ? cutsceneCamera : mainCamera;
+
         public float FieldOfView => cutsceneCamera != null ? cutsceneCamera.fieldOfView : 60f;
         public float Aspect => cutsceneCamera != null && cutsceneCamera.aspect > 0.01f
             ? cutsceneCamera.aspect
@@ -229,54 +240,64 @@ namespace ShinyMinds.Missions.Runtime
         }
 
         /// <summary>Instantly hand rendering back. Safe to call when not in control.</summary>
-        public void HardRelease()
-        {
-            activeLookAt = null;
-            hasControl = false;
-            shakeRemaining = 0f;
-            shakeOffset = Vector3.zero;
+       public void HardRelease()
+{
+    activeLookAt = null;
+    hasControl = false;
+    shakeRemaining = 0f;
+    shakeOffset = Vector3.zero;
 
-            if (pushRoutine != null)
-            {
-                StopCoroutine(pushRoutine);
-                pushRoutine = null;
-            }
+    if (pushRoutine != null)
+    {
+        StopCoroutine(pushRoutine);
+        pushRoutine = null;
+    }
 
-            if (cutsceneCamera != null) cutsceneCamera.enabled = false;
+    if (cutsceneCamera != null)
+        cutsceneCamera.enabled = false;
 
-            if (mainCamera != null)
-            {
-                mainCamera.gameObject.SetActive(true);
-                mainCamera.enabled = true;
-            }
-        }
+    if (mainCamera != null)
+    {
+        mainCamera.gameObject.SetActive(true);
+        mainCamera.enabled = true;
+    }
 
-        void TakeOver()
-        {
-            if (hasControl || cutsceneCamera == null)
-                return;
+    // Show the map arrow again after the cutscene.
+    if (mapArrow != null)
+        mapArrow.SetActive(true);
+}
 
-            if (mainCamera != null)
-            {
-                // MapToggle (M) deactivates the Main Camera GameObject, which would take
-                // the AudioListener with it. Force it back before handing over.
-                mainCamera.gameObject.SetActive(true);
+void TakeOver()
+{
+    if (hasControl || cutsceneCamera == null)
+        return;
 
-                cutsceneCamera.transform.SetPositionAndRotation(
-                    mainCamera.transform.position,
-                    mainCamera.transform.rotation);
+    if (mainCamera != null)
+    {
+        // MapToggle (M) deactivates the Main Camera GameObject, which would take
+        // the AudioListener with it. Force it back before handing over.
+        mainCamera.gameObject.SetActive(true);
 
-                cutsceneCamera.fieldOfView = mainCamera.fieldOfView;
-            }
+        cutsceneCamera.transform.SetPositionAndRotation(
+            mainCamera.transform.position,
+            mainCamera.transform.rotation);
 
-            cutsceneCamera.enabled = true;
+        cutsceneCamera.fieldOfView = mainCamera.fieldOfView;
+    }
 
-            // Disable the component only — exactly one Base camera renders, which keeps
-            // URP happy without any camera-stacking setup.
-            if (mainCamera != null) mainCamera.enabled = false;
+    cutsceneCamera.enabled = true;
 
-            hasControl = true;
-        }
+    // Disable the main camera while the cutscene camera renders.
+    if (mainCamera != null)
+        mainCamera.enabled = false;
+
+    // Hide the map arrow during the cutscene.
+    if (mapArrow != null)
+        mapArrow.SetActive(false);
+
+    hasControl = true;
+}
+
 
         void AimAt(Transform lookAt)
         {

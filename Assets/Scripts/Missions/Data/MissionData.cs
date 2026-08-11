@@ -131,10 +131,19 @@ namespace ShinyMinds.Missions.Data
                     problems++;
                 }
 
-                if ((n.kind == MissionNodeKind.Line || n.kind == MissionNodeKind.Thought)
+                if ((n.kind == MissionNodeKind.Line || n.kind == MissionNodeKind.Thought
+                     || n.kind == MissionNodeKind.Memory)
                     && !string.IsNullOrEmpty(n.speakerKey) && GetSpeaker(n.speakerKey) == null)
                 {
                     Debug.LogWarning($"[{missionId}] Node '{n.id}' uses unknown speaker '{n.speakerKey}'.", this);
+                }
+
+                if (n.kind == MissionNodeKind.Memory)
+                {
+                    SpeakerProfile s = GetSpeaker(n.speakerKey);
+                    if (s != null && s.memorySide == MemorySide.None)
+                        Debug.LogWarning($"[{missionId}] Memory node '{n.id}' uses speaker '{n.speakerKey}', " +
+                                         "which has no memorySide — nobody on the memory stage will speak it.", this);
                 }
             }
 

@@ -31,9 +31,20 @@ namespace ShinyMinds.Missions.Runtime
 
         [Header("Ground")]
         [SerializeField] bool stickToGround = true;
+        [Tooltip("How far above the feet the ground ray starts. Must clear the road mesh, " +
+                 "but anything it starts inside can pull the actor up — see maxSnapStepUp.")]
         [SerializeField] float groundRayHeight = 2f;
+        [Tooltip("How far BELOW the feet to look for ground. Scaled by the actor's lossyScale, " +
+                 "so a scale-2 adult still reaches down as far as a scale-1 one.")]
         [SerializeField] float groundRayLength = 8f;
+        [Tooltip("Largest upward correction the ground snap may apply, in metres at scale 1. " +
+                 "A kerb, yes; a rooftop, no. See SnapDown for why this matters.")]
+        [SerializeField] float maxSnapStepUp = 0.4f;
         [SerializeField] LayerMask groundMask = ~0;
+        [Tooltip("Ground the character by its lowest rendered point instead of by the transform " +
+                 "origin. Humanoid retargeting can seat the body above the origin, which no " +
+                 "amount of raycasting corrects. See RenderedFootLift.")]
+        [SerializeField] bool groundByRenderedFeet = true;
 
         [Header("Root motion")]
         [Tooltip("Let the animation drive travel instead of translating the transform. " +
@@ -53,6 +64,25 @@ namespace ShinyMinds.Missions.Runtime
         bool rootMotionActive;
         bool cachedApplyRootMotion;
 
+        // SnapDown runs every frame of a move, so its warnings are latched to one per
+        // move — otherwise a single bad path buries the console.
+        bool warnedNoGround;
+        bool warnedClimb;
+
+        Renderer[] renderers;
+        float calibratedLift = float.PositiveInfinity;
+        float calibrationStartTime = -1f;
+        float calibrationEndTime = -1f;
+        float calibratedScale;          // lossyScale.y the lift above was measured at
+
+        // Long enough for the Animator to settle into idle and for the bounds to describe a
+        // real pose rather than the bind pose, short enough to close before an emote plays.
+        const float CalibrationSeconds = 1f;
+
+        // Dead time before sampling starts, so the first frames — where the Animator has not
+        // run yet and the mesh is still in its bind pose — cannot poison the measurement.
+        const float CalibrationDelay = 0.2f;
+
         public bool IsMoving { get; private set; }
         public bool UseRootMotion => useRootMotion;
 
@@ -69,9 +99,30 @@ namespace ShinyMinds.Missions.Runtime
             characterController = GetComponent<CharacterController>();
         }
 
+        /// <summary>
+        /// Keeps the actor planted while standing still, not just while walking.
+        ///
+        /// The retargeting lift RenderedFootLift corrects only exists once the Animator has
+        /// evaluated, so this has to be LateUpdate — in Update the bounds still describe
+        /// last frame's pose. It also covers the long stretches where a mission actor is
+        /// idling through dialogue and no MoveTo coroutine is running to re-ground them.
+        ///
+        /// Actors driven by a CharacterController (the player) are left alone; their own
+        /// controller owns their vertical position.
+        /// </summary>
+        void LateUpdate()
+        {
+            if (!stickToGround) return;
+            if (characterController != null && characterController.enabled) return;
+
+            SnapDown();
+        }
+
         public IEnumerator MoveTo(Vector3 target, bool run, bool backwards = false)
         {
             IsMoving = true;
+            warnedNoGround = false;
+            warnedClimb = false;
 
             float baseSpeed = backwards ? backSpeed : (run ? runSpeed : walkSpeed);
             float speed = baseSpeed * ScaleFactor;
@@ -253,17 +304,142 @@ namespace ShinyMinds.Missions.Runtime
             IsMoving = false;
         }
 
+        /// <summary>
+        /// How far the character's lowest rendered point sits above its transform origin.
+        ///
+        /// Unity's Humanoid retargeting seats the body using the Avatar's proportions, and
+        /// for Mixamo rigs — whose FBX root is exported at hip height — the result can sit
+        /// well above the GameObject origin. It scales with lossyScale, so the scale-2
+        /// Stranger floats about twice as far as a scale-1 actor. Disabling the Animator
+        /// appears to fix it only because the bones fall back to the bind pose, where the
+        /// origin really is at the feet.
+        ///
+        /// So grounding the origin is not the same as grounding the character. Measuring the
+        /// rendered bounds corrects it whatever the residual turns out to be, without having
+        /// to chase it through Avatar and clip import settings.
+        /// </summary>
+        float RenderedFootLift()
+        {
+            if (!groundByRenderedFeet) return 0f;
+
+            if (renderers == null || renderers.Length == 0)
+                renderers = GetComponentsInChildren<Renderer>(true);
+
+            float lowest = float.PositiveInfinity;
+            foreach (Renderer r in renderers)
+                if (r != null && r.enabled)
+                    lowest = Mathf.Min(lowest, r.bounds.min.y);
+
+            if (float.IsPositiveInfinity(lowest))
+                return 0f;
+
+            // The lift is a WORLD-space distance, so it is only valid for the scale it was
+            // measured at — halve the actor and the real lift halves with it. Without this,
+            // rescaling an actor keeps applying the old figure forever and leaves it
+            // floating (if shrunk) or sunk into the pavement (if enlarged).
+            float currentScale = ScaleFactor;
+
+            if (!Mathf.Approximately(currentScale, calibratedScale))
+            {
+                calibratedScale = currentScale;
+                RecalibrateFootLift();
+            }
+
+            float live = lowest - transform.position.y;
+
+            // Take the SMALLEST lift seen during a short settling window, not this frame's.
+            // The retargeting residual is constant; the clip's own vertical motion is not.
+            // Correcting by the minimum removes the residual and leaves the animation free
+            // to lift the feet — correct by the live value instead and a run cycle's
+            // airborne phase is flattened into a glide. The window then closes so a later
+            // emote (Sad sits the character down) cannot poison the reference.
+            if (calibrationStartTime < 0f)
+            {
+                calibrationStartTime = Time.time + CalibrationDelay;
+                calibrationEndTime = calibrationStartTime + CalibrationSeconds;
+            }
+
+            // Do not sample until the Animator has actually produced a pose. On the frame an
+            // actor is switched on, the bounds still describe the BIND pose — where the origin
+            // really is at the feet, so the lift reads as ~0. Mathf.Min below would latch that
+            // for the whole session, SnapDown would then ground the ORIGIN rather than the
+            // feet, and the actor floats by the entire retargeting residual. Track the live
+            // value meanwhile, so the delay itself never leaves them mis-grounded.
+            if (Time.time < calibrationStartTime)
+                return live;
+
+            if (Time.time <= calibrationEndTime)
+                calibratedLift = Mathf.Min(calibratedLift, live);
+
+            return float.IsPositiveInfinity(calibratedLift) ? live : calibratedLift;
+        }
+
+        /// <summary>
+        /// Reopens the settling window, e.g. after swapping an actor's rig at runtime.
+        /// </summary>
+        public void RecalibrateFootLift()
+        {
+            calibratedLift = float.PositiveInfinity;
+            calibrationStartTime = -1f;
+            calibrationEndTime = -1f;
+        }
+
+        /// <summary>
+        /// Plants the actor's feet on the ground below them.
+        ///
+        /// The ray has to start above the feet or it would begin inside the road mesh
+        /// and miss — but that also lets it hit a rooftop, awning or car roof the actor
+        /// is passing under and snap him UP onto it. MoveTo only steers in XZ, and most
+        /// mission actors have no CharacterController (so no gravity), which means one
+        /// bad upward snap strands an actor in the sky for the rest of the cutscene.
+        /// Hence: drops of any size are accepted, climbs beyond a kerb are refused.
+        ///
+        /// If this warns, the usual cause is a marker left at its auto-generated
+        /// position while the rest of the staging was dragged elsewhere, sending the
+        /// actor on a long walk through the middle of the city.
+        /// </summary>
         public void SnapDown()
         {
-            Vector3 origin = transform.position + Vector3.up * groundRayHeight;
+            float scale = ScaleFactor;
+            float above = groundRayHeight * scale;
+            float below = groundRayLength * scale;
 
-            if (Physics.Raycast(origin, Vector3.down, out RaycastHit hit,
-                                groundRayLength, groundMask, QueryTriggerInteraction.Ignore))
+            Vector3 feet = transform.position;
+
+            // Cast from where the character actually LOOKS like it is, not from its origin.
+            float lift = RenderedFootLift();
+            Vector3 soles = new Vector3(feet.x, feet.y + lift, feet.z);
+
+            if (!Physics.Raycast(soles + Vector3.up * above, Vector3.down, out RaycastHit hit,
+                                 above + below, groundMask, QueryTriggerInteraction.Ignore))
             {
-                Vector3 p = transform.position;
-                p.y = hit.point.y;
-                transform.position = p;
+                if (!warnedNoGround)
+                {
+                    warnedNoGround = true;
+                    Debug.LogWarning($"ActorMover on '{name}': no ground within {below:0.#}m below " +
+                                     $"{feet}. Leaving the actor at y={feet.y:0.##}. Check the target " +
+                                     "marker actually sits over the street.", this);
+                }
+                return;
             }
+
+            float climb = hit.point.y - soles.y;
+            if (climb > maxSnapStepUp * scale)
+            {
+                if (!warnedClimb)
+                {
+                    warnedClimb = true;
+                    Debug.LogWarning($"ActorMover on '{name}': ground ray hit '{hit.collider.name}' " +
+                                     $"{climb:0.##}m above the feet — refusing to climb onto it. The " +
+                                     "actor is walking through geometry; move the markers so the path " +
+                                     "stays on the street.", this);
+                }
+                return;
+            }
+
+            // Place the ORIGIN so the rendered soles land on the hit point.
+            feet.y = hit.point.y - lift;
+            transform.position = feet;
         }
 
         void SetAnim(float speed, bool backwards)

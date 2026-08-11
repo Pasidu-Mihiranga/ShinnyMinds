@@ -42,6 +42,7 @@ namespace ShinyMinds.Missions.EditorTools
                     case int i: p.intValue = i; break;
                     case float f: p.floatValue = f; break;
                     case Color c: p.colorValue = c; break;
+                    case Vector2 v2: p.vector2Value = v2; break;
                     case Vector3 v: p.vector3Value = v; break;
                     case LayerMask m: p.intValue = m.value; break;
                     default:
@@ -141,6 +142,47 @@ namespace ShinyMinds.Missions.EditorTools
             t.raycastTarget = false;
             t.textWrappingMode = TextWrappingModes.Normal;
             return t;
+        }
+
+        // ---------------------------------------------------------------- layers
+
+        /// <summary>
+        /// Finds a user layer by name, claiming the first free slot if it does not exist
+        /// yet. Returns -1 when all 32 layers are taken.
+        /// </summary>
+        public static int EnsureLayer(string name)
+        {
+            int existing = LayerMask.NameToLayer(name);
+            if (existing >= 0) return existing;
+
+            var tagManager = new SerializedObject(
+                AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/TagManager.asset")[0]);
+            SerializedProperty layers = tagManager.FindProperty("layers");
+
+            // 0-7 are reserved by Unity; MapIcon already sits at 3.
+            for (int i = 8; i < layers.arraySize; i++)
+            {
+                SerializedProperty slot = layers.GetArrayElementAtIndex(i);
+                if (string.IsNullOrEmpty(slot.stringValue))
+                {
+                    slot.stringValue = name;
+                    tagManager.ApplyModifiedProperties();
+                    Debug.Log($"Added layer '{name}' at index {i}.");
+                    return i;
+                }
+            }
+
+            Debug.LogError($"No free user layer for '{name}'.");
+            return -1;
+        }
+
+        public static void SetLayerRecursive(GameObject go, int layer)
+        {
+            if (go == null || layer < 0) return;
+
+            go.layer = layer;
+            foreach (Transform child in go.transform)
+                SetLayerRecursive(child.gameObject, layer);
         }
 
         // ---------------------------------------------------------------- assets

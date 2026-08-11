@@ -30,18 +30,37 @@ namespace ShinyMinds.Missions.Runtime
         [SerializeField] MissionCameraDirector cameraDirector;
         [SerializeField] AudioSource sfx;
         [SerializeField] Transform playerTransform;
+        [Tooltip("Optional. Left empty, the runner uses whichever MemoryStage is in the " +
+                 "scene, since this component ships inside a prefab.")]
+        [SerializeField] MemoryStage memoryStage;
 
         [Header("Presentation")]
         [SerializeField] float typewriterCharsPerSecond = 45f;
         [SerializeField] string continuePromptText = "Press E";
+        [Tooltip("Shown instead on phones and tablets, where a tap anywhere on the play " +
+                 "area advances the line and there is no E to press.")]
+        [SerializeField] string touchContinuePromptText = "Touch";
 
         MissionData mission;
         Coroutine loop;
         int pickedChoice = -1;
         string pendingRestartId;
+        bool memoryOpen;
+        bool warnedNoMemory;
         readonly Dictionary<string, bool> flags = new Dictionary<string, bool>();
 
         public bool IsRunning => loop != null;
+
+        MemoryStage Stage => memoryStage != null ? memoryStage : MemoryStage.Current;
+
+        /// <summary>
+        /// Read per line rather than cached: a device can gain a keyboard mid-session, and
+        /// the editor's touch simulation is a checkbox someone flips between play sessions.
+        /// </summary>
+        string ContinuePrompt =>
+            TouchInput.Active && !string.IsNullOrEmpty(touchContinuePromptText)
+                ? touchContinuePromptText
+                : continuePromptText;
 
         // ------------------------------------------------------------ IMissionContext
 
@@ -98,10 +117,13 @@ namespace ShinyMinds.Missions.Runtime
 
         void OnDisable()
         {
-            // Never leave the player frozen because this object went away mid-cutscene.
+            // Never leave the player frozen — or a memory hanging on screen — because
+            // this object went away mid-cutscene.
             if (loop != null)
             {
                 loop = null;
+                memoryOpen = false;
+                Stage?.SetOpen(false);
                 PlayerInputLock.ResetAll();
             }
         }
@@ -126,6 +148,7 @@ namespace ShinyMinds.Missions.Runtime
                 {
                     case MissionNodeKind.Line:
                     case MissionNodeKind.Thought:
+                    case MissionNodeKind.Memory:
                         yield return ShowLine(node);
                         current = node.nextId;
                         break;
@@ -194,11 +217,53 @@ namespace ShinyMinds.Missions.Runtime
             SpeakerProfile speaker = mission.GetSpeaker(node.speakerKey);
             bool isThought = node.kind == MissionNodeKind.Thought;
 
-            PlayerInputLock.Acquire(this);
-            SetTalking(speaker, true);
-            ui.ShowLine(isThought, speaker, node.text);
+            // Without a stage to act it out, a remembered line is still a line: play it
+            // in the dialogue bar rather than opening an empty bubble.
+            bool isMemory = node.kind == MissionNodeKind.Memory && Stage != null && ui.HasMemoryPanel;
 
-            // The first E press completes the typewriter rather than advancing.
+            // A thought belongs in the same bubble, minus the stage. It is Aisha's own
+            // voice, so there is nobody to act it out and nothing to render inside the
+            // oval — but it is no more happening-now than a memory is, and the bubble is
+            // what says so.
+            bool isThoughtBubble = isThought && ui.HasMemoryThought;
+
+            MemorySide side = isMemory && speaker != null ? speaker.memorySide : MemorySide.None;
+
+            if (node.kind == MissionNodeKind.Memory && !isMemory)
+                WarnMemoryUnavailable(node);
+
+            PlayerInputLock.Acquire(this);
+
+            if (isMemory || isThoughtBubble)
+            {
+                // Whose bubble this is. A thought speaker has a body — it is Aisha thinking —
+                // while a memory speaker's actorKey is deliberately empty, because nobody in
+                // the playable world is speaking: the girl standing there remembering it owns
+                // the bubble.
+                yield return OpenMemory(isMemory, SpeakerBody(speaker) ?? playerTransform);
+
+                if (isMemory)
+                {
+                    Stage.SetSpeaking(side);
+                    ui.ShowMemoryLine(speaker, side, node.text);
+                }
+                else
+                {
+                    ui.ShowMemoryThought(node.text);
+                }
+            }
+            else
+            {
+                SetTalking(speaker, true);
+
+                // With a body in the scene the line goes in a balloon over their head;
+                // without one — the narrator — it falls back to the subtitle bar.
+                Transform body = SpeakerBody(speaker);
+                ui.ShowLine(isThought, speaker, node.text, body,
+                            body != null ? cameraDirector?.ActiveCamera : null);
+            }
+
+            // The first press (or tap) completes the typewriter rather than advancing.
             bool skipped = false;
             yield return ui.PlayTypewriter(
                 node.text,
@@ -211,7 +276,7 @@ namespace ShinyMinds.Missions.Runtime
             }
             else
             {
-                ui.ShowContinuePrompt(continuePromptText);
+                ui.ShowContinuePrompt(ContinuePrompt);
 
                 // Don't let the skip press also count as the advance press.
                 if (skipped) yield return null;
@@ -220,8 +285,71 @@ namespace ShinyMinds.Missions.Runtime
                     yield return null;
             }
 
-            SetTalking(speaker, false);
-            ui.HideLine();
+            if (isMemory || isThoughtBubble)
+            {
+                if (isMemory) Stage.SetSpeaking(MemorySide.None);
+
+                ui.HideLine();      // leaves the balloon up, dimmed
+
+                // Consecutive nodes of the same kind share one bubble, so it only closes
+                // once the remembered exchange — or the train of thought — is over. A
+                // change of kind swaps the picture, so that one has to close and reopen.
+                if (mission.GetNode(node.nextId)?.kind != node.kind)
+                    yield return CloseMemory();
+            }
+            else
+            {
+                SetTalking(speaker, false);
+                ui.HideLine();
+            }
+        }
+
+        // ------------------------------------------------------------------- memory
+
+        /// <summary>
+        /// Says out loud which half of the setup is missing. Degrading to a plain line is
+        /// the right behaviour, but doing it silently looks exactly like "the memory bubble
+        /// does not work" — and the fix is always one un-run menu item.
+        /// </summary>
+        void WarnMemoryUnavailable(MissionNode node)
+        {
+            if (warnedNoMemory) return;
+            warnedNoMemory = true;
+
+            string missing = Stage == null
+                ? "there is no MemoryStage in the scene (run 'ShinyMinds/Setup/7. Build Memory Stage')"
+                : "MissionUI.prefab has no memory panel (run 'ShinyMinds/Setup/1. Build Mission UI Prefab')";
+
+            Debug.LogWarning($"[{mission.missionId}] Memory node '{node.id}' is playing as an " +
+                             $"ordinary line because {missing}.", this);
+        }
+
+        /// <param name="withStage">
+        /// False for a thought: no stand-ins, so the little set stays switched off and its
+        /// camera never renders a frame.
+        /// </param>
+        /// <param name="owner">Who the bubble hangs over and its trail of dots points at.</param>
+        IEnumerator OpenMemory(bool withStage, Transform owner)
+        {
+            if (memoryOpen)
+                yield break;
+
+            memoryOpen = true;
+
+            if (withStage)
+                Stage?.SetOpen(true);   // the set must be rendering before the bubble fades up
+
+            yield return ui.OpenMemory(withStage, owner, cameraDirector?.ActiveCamera);
+        }
+
+        IEnumerator CloseMemory()
+        {
+            if (!memoryOpen)
+                yield break;
+
+            memoryOpen = false;
+            yield return ui.CloseMemory();
+            Stage?.SetOpen(false);
         }
 
         IEnumerator ShowChoice(MissionNode node)
@@ -296,9 +424,24 @@ namespace ShinyMinds.Missions.Runtime
 
             cameraDirector?.HardRelease();
             ui?.HideAll();
+            Stage?.SetOpen(false);
+            memoryOpen = false;
             PlayerInputLock.ResetAll();
             flags.Clear();
             pickedChoice = -1;
+        }
+
+        /// <summary>The speaker's transform in the scene, or null for a bodiless voice.</summary>
+        Transform SpeakerBody(SpeakerProfile speaker)
+        {
+            if (speaker == null || string.IsNullOrEmpty(speaker.actorKey))
+                return null;
+
+            IMissionActor actor = GetActor(speaker.actorKey);
+            if (actor == null || actor.GameObject == null || !actor.GameObject.activeInHierarchy)
+                return null;
+
+            return actor.Transform;
         }
 
         void SetTalking(SpeakerProfile speaker, bool talking)

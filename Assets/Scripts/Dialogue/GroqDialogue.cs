@@ -44,6 +44,18 @@ public class GroqDialogue : MonoBehaviour
         get { return dialogueOpen; }
     }
 
+    // On a phone a tap anywhere advances, and "F = Leave" would name a key that is not
+    // there — the conversation ends by tapping through its last line instead.
+    private string ContinueHint
+    {
+        get
+        {
+            return TouchInput.Active
+                ? "Touch = Next"
+                : "E = Next | F = Leave";
+        }
+    }
+
     public void GenerateConversation()
     {
         StartCoroutine(GetConversation());
@@ -294,8 +306,7 @@ public class GroqDialogue : MonoBehaviour
 
             if (continueText != null)
             {
-                continueText.text =
-                    "E = Next | F = Leave";
+                continueText.text = ContinueHint;
             }
         }
     }
@@ -315,6 +326,19 @@ public class GroqDialogue : MonoBehaviour
         if (!dialoguePanel.activeSelf)
             return;
 
+        // Leave stays available even while the answer is still being generated.
+        if (Input.GetKeyDown(InteractKey.Leave))
+        {
+            CloseDialogue();
+            return;
+        }
+
+        // The panel is up showing "Generating..." while the request is in flight. An
+        // advance has no line to move to yet, and on a phone impatient taps during that
+        // wait are the norm rather than the exception.
+        if (dialogueLines == null)
+            return;
+
         if (
             (tts == null || !tts.IsSpeaking)
             &&
@@ -331,11 +355,6 @@ public class GroqDialogue : MonoBehaviour
             {
                 CloseDialogue();
             }
-        }
-
-        if (Input.GetKeyDown(KeyCode.F))
-        {
-            CloseDialogue();
         }
     }
 
@@ -359,8 +378,7 @@ public class GroqDialogue : MonoBehaviour
 
         if (continueText != null)
         {
-            continueText.text =
-                "E = Next    |    F = Leave";
+            continueText.text = ContinueHint;
         }
     }
 
@@ -378,8 +396,7 @@ public class GroqDialogue : MonoBehaviour
 
         if (continueText != null)
         {
-            continueText.text =
-                "E = Next | F = Leave";
+            continueText.text = ContinueHint;
         }
     }
 }

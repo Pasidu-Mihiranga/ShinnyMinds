@@ -19,7 +19,8 @@ That runs the whole pipeline in dependency order:
 | 3 | **Setup ▸ 3. Configure Character Rigs** | Humanoid on Teacher / Mother / Ch29_nonPBR; looping on the cycle clips |
 | 4 | **Setup ▸ 4. Build Animator Controllers** | `MissionActorAnimator.controller`; adds Fear/Sad/Sit/Laugh to `PlayerAnimator` |
 | 5 | **Setup ▸ 5. Build Stranger Prefab** | `Stranger.prefab` from the unused Ch29_nonPBR |
-| 6 | **Setup ▸ 6. Wire Open Scene** | player components, `CameraIgnore` layer, staging root, 25 markers, the Stranger |
+| 6 | **Setup ▸ 6. Wire Open Scene** | player components, `CameraIgnore` layer, staging root, 25 markers, the Stranger, the memory stage |
+| 7 | **Setup ▸ 7. Build Memory Stage** | `MemoryStage` — Scene 1's flashback set, its two stand-ins and its render camera (step 6 already calls this) |
 
 You can also run them individually if you want to see each result. **Order matters** —
 step 3 re-imports FBX rigs, and a rig re-import can drop component overrides on scene
@@ -115,14 +116,43 @@ MissionUI                    Canvas + CanvasScaler + GraphicRaycaster + MissionU
 ├── FadeOverlay              Image (black, alpha 0), full screen
 ├── ObjectiveHud             + ObjectiveHud.cs, top-left
 │   └── ObjectiveText        TMP
-├── DialoguePanel            bottom-centre
-│   └── Frame                Image
+├── DialoguePanel            bottom-centre — the NARRATOR ONLY; everyone with a body
+│   └── Frame                Image                    speaks in a balloon instead
 │       ├── SpeakerLabel     TMP
 │       ├── LineText         TMP + TypewriterText.cs
 │       └── ContinuePrompt   TMP  ("Press E")
-├── ThoughtPanel             upper-centre
-│   └── Bubble               Image (translucent)
-│       └── ThoughtText      TMP, italic, centred + TypewriterText.cs
+├── WorldBalloon             full screen + WorldSpeechBubble.cs
+│   └── Balloon              the shared speech balloon, moved over the speaker's head
+│                            every frame; its tail slides to keep pointing at them
+├── WorldContinuePrompt      TMP ("Press E"), bottom-right of the screen
+├── ThoughtPanel             upper-centre — FALLBACK ONLY. Thoughts now play in the
+│   └── Bubble               Image (translucent)     memory bubble below; this is what
+│       └── ThoughtText      TMP, italic, centred    a prefab built before ThoughtBalloon
+│                            + TypewriterText.cs     existed still falls back to
+├── MemoryPanel              full screen + CanvasGroup (fades the whole memory in/out)
+│   │                        + MemoryBubbleAnchor.cs — sizes the oval (860×580 with the
+│   │                        stage, 440×250 for a thought). A memory keeps the corner and
+│   │                        the dots authored here; a thought follows the thinker
+│   ├── Dim                  Image (black, alpha 0.40)
+│   └── Bubble               Image (UI_Ellipse), warm paper, centre-anchored; position
+│       │                    and size come from MemoryBubbleAnchor at runtime,
+│       │                    scaled 0.86 → 1 on open
+│       ├── TailDot_0/1/2    Image (UI_Ellipse), 32/21/13 px stepping diagonally out
+│       │                    from the oval's lower-left arc. These offsets ARE the
+│       │                    memory pose; a thought's are computed from the head
+│       ├── Frame            Image (UI_Ellipse) + Mask — crops the render to an oval.
+│       │   │                Switched OFF for a Thought node: no stage, no picture
+│       │   └── Render       RawImage ← MemoryStage.renderTexture, 832×468 (16:9),
+│       │                    wider than the oval so the mask crops rather than stretches
+│       ├── ContinuePrompt   TMP ("Press E") — the dialogue panel's own is hidden with it.
+│       │                    Anchored at 6.6% of the oval's height, not a pixel offset,
+│       │                    so it survives the resize
+│       ├── LeftBalloon      MemoryBubble.cs — Tail (45°-rotated square), white Fill,
+│       │                    Neck patch, all black-outlined, + centred dark Line
+│       │                    and Typewriter. Order matters: see the builder's comment
+│       ├── RightBalloon     (same, tail leaning the other way)
+│       └── ThoughtBalloon   (same balloon, 320 wide, 26pt, centred, italic, tail and
+│                            neck switched off) — the only thing in the oval for a Thought
 ├── ChoicePanel              centre, VerticalLayoutGroup + ContentSizeFitter
 │   ├── ChoicePrompt         TMP
 │   └── Choices              VerticalLayoutGroup
@@ -138,6 +168,17 @@ MissionUI                    Canvas + CanvasScaler + GraphicRaycaster + MissionU
             ├── RetryButton      Button + TMP label "Try Again"
             └── ContinueButton   Button + TMP label "Continue"
 ```
+
+> `Assets/Art/UI/UI_Ellipse.png` is generated on the first build: a 512px white disc,
+> stretched to make the oval bubble, its mask and the tail dots. Unity's built-in `Knob`
+> is only a few dozen pixels across and turns soft and wobbly at bubble size.
+
+> `Assets/Art/UI/UI_RoundedRect.png` is generated the same way: a 96px rounded square,
+> imported with a **24px 9-slice border**, which gives every balloon, panel and button its
+> corner radius. Unity's built-in `UISprite` was doing this and it is a 32px texture with a
+> 3px border — sliced, its corners stay 3 canvas pixels at any size, which on a 1400-wide
+> dialogue bar is indistinguishable from a square. Change `CornerRadius` in
+> `MissionUIBuilder` and delete the PNG to reshape all of them at once.
 
 > **Turn *Raycast Target* OFF** on `FadeOverlay`, `BarTop` and `BarBottom`. With
 > `InputSystemUIInputModule`, a full-screen raycast target swallows every button click and
@@ -330,6 +371,70 @@ audio branch merge; they double the volume and will mask the school bell.
 
 ---
 
+## 11. The memory stage (Scene 1's flashback)
+
+Menu: **ShinyMinds ▸ Setup ▸ 7. Build Memory Stage** (step 6 already runs it).
+
+`s1_mother` / `s1_aisha` are not a conversation at the school gate — they are what Aisha's
+mother told her that morning, which Aisha is remembering as she leaves. They are `Memory`
+nodes, and they play inside the memory bubble with the two of them acting it out.
+
+The set is built in the open scene:
+
+```
+MemoryStage                  MemoryStage.cs (must stay ACTIVE — it toggles the child)
+└── Diorama                  switched on only while a memory is on screen
+    ├── MemoryCamera         solid warm background, culls to the MemoryStage layer,
+    │                        renders into Assets/Rendering/MemoryStage.renderTexture
+    ├── Backdrop             unlit quad showing whatever texture sits in Assets/Art/Memory
+    ├── KeyLight / FillLight point lights, range 14, no shadows
+    ├── Aisha_Memory         GİRL 1 model, scale 5  → speakers with memorySide = Left
+    └── Mother_Memory        Mother model, scale 2  → memorySide = Right
+```
+
+It sits at **y = −600** on its own `MemoryStage` layer, and every other camera in the scene
+has that layer removed from its culling mask, so the stand-ins can never be seen or reached
+from the road.
+
+### Tuning the framing
+
+The stand-ins are posed from constants, and character heights differ per model, so the
+first build may frame them loosely.
+
+1. Select `MemoryStage/Diorama` and tick it **active** in the Inspector.
+2. Select `MemoryCamera` — Unity shows a live camera preview in the Scene view. You can
+   also double-click `Assets/Rendering/MemoryStage.renderTexture` to see what it renders.
+3. Nudge the camera (or the two stand-ins) until they read like a two-shot with both of
+   them turned three-quarters towards the lens — and **keep the top quarter of the frame
+   clear**, because the two speech balloons sit across it.
+4. Set `Diorama` **inactive** again and save the scene.
+
+Plain **Build Memory Stage** keeps a set that already exists, so your nudges survive
+re-running the setup. **Setup ▸ Rebuild Memory Stage From Scratch** throws them away and
+starts from the constants in `MissionMemoryStageBuilder`.
+
+> **After changing anything about how the memory looks, run
+> **ShinyMinds ▸ Setup ▸ Apply Memory Bubble Changes**.** The bubble is half prefab (size,
+> corner, balloons, tail) and half scene (the framing of the stand-ins), and editing the
+> builder scripts changes *neither* until they are re-run — running only one of the two is
+> what a half-applied result looks like. This item does both.
+
+### Changing the backdrop
+
+`Assets/Art/Memory/` holds the picture behind the pair — currently the flat house
+illustration, so the memory reads as home rather than as another patch of city. Any texture
+dropped in that folder is picked up on the next rebuild (keep exactly one there), sized to
+the frame by width with its own aspect preserved, and drawn **unlit** so the lights that
+model the two figures do not rake across a drawing and give it away as a flat plane.
+`MemoryBackdrop.mat` is generated beside it. With the folder empty, the memory falls back
+to the camera's plain paper colour.
+
+> The stand-ins need `MissionActorAnimator.controller` (step 4) or they will stand in a
+> T-pose. They are separate models, not the scene's `Mother` — she is still needed, alive
+> and inactive, for Paths B and C.
+
+---
+
 ## Regression checklist
 
 After each step, confirm the pre-existing game still works:
@@ -343,3 +448,6 @@ After each step, confirm the pre-existing game still works:
 - [ ] Standing where a door trigger and an `InteractionZone` overlap, `E` does exactly one thing
 - [ ] Alt-tab away and back: cursor is still locked
 - [ ] Car traffic still drives its routes
+- [ ] Scene 1: the mother/Aisha exchange opens as a memory bubble with both of them moving
+      inside it, and the bubble closes before Aisha sets off
+- [ ] Nothing from the memory stage is visible from the road, and the minimap is unchanged
