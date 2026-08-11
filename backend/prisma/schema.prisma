@@ -1,0 +1,227 @@
+// ShinyMinds data model.
+//
+// Two kinds of account exist and they are deliberately separate:
+//   Parent - signs in to the parent dashboard (email + password)
+//   Child  - signs in to the Unity game from the main menu (username + password)
+// A parent shares their linkCode with the child, who enters it at registration.
+// Until that happens a child can still play; their data simply has no parent attached.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Accounts
+// ---------------------------------------------------------------------------
+
+model Parent {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  displayName  String
+  // Short human-typeable code the child enters in the game to link the accounts.
+  linkCode     String   @unique
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  children      Child[]
+  chatMessages  ChatMessage[]
+  refreshTokens RefreshToken[]
+
+  @@map("parents")
+}
+
+model Child {
+  id           String   @id @default(uuid())
+  username     String   @unique
+  passwordHash String
+  displayName  String
+  age          Int?
+  avatarUrl    String?
+  parentId     String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  parent          Parent?          @relation(fields: [parentId], references: [id], onDelete: SetNull)
+  sessions        GameSession[]
+  missionAttempts MissionAttempt[]
+  decisions       Decision[]
+  skillSnapshots  SkillSnapshot[]
+  chatMessages    ChatMessage[]
+  refreshTokens   RefreshToken[]
+
+  @@index([parentId])
+  @@map("children")
+}
+
+// One row per issued refresh token. Exactly one of parentId / childId is set.
+// Storing them lets a sign-out actually revoke the session instead of relying on expiry.
+model RefreshToken {
+  id        String    @id @default(uuid())
+  tokenHash String    @unique
+  parentId  String?
+  childId   String?
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  parent Parent? @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  child  Child?  @relation(fields: [childId], references: [id], onDelete: Cascade)
+
+  @@index([parentId])
+  @@index([childId])
+  @@map("refresh_tokens")
+}
+
+// ---------------------------------------------------------------------------
+// Mission catalogue
+// ---------------------------------------------------------------------------
+
+enum Skill {
+  SAFETY
+  COMMUNICATION
+  EMPATHY
+  CONFIDENCE
+}
+
+// Missions are data, not code. Adding one is a seed/DB change, never an if/else branch
+// in the game - which is what AGENTS.md asks for.
+model Mission {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  title       String
+  description String
+  // The NPC topic string the Unity GroqDialogue component uses for this mission.
+  topic       String
+  skill       Skill
+  orderIndex  Int
+  maxScore    Int      @default(100)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  attempts MissionAttempt[]
+
+  @@index([orderIndex])
+  @@map("missions")
+}
+
+// ---------------------------------------------------------------------------
+// Gameplay records
+// ---------------------------------------------------------------------------
+
+// A single run of the game, from pressing Continue/New Game to quitting.
+// Playtime on the dashboard is the sum of these.
+model GameSession {
+  id              String    @id @default(uuid())
+  childId         String
+  startedAt       DateTime  @default(now())
+  endedAt         DateTime?
+  durationSeconds Int       @default(0)
+  platform        String?
+
+  child    Child            @relation(fields: [childId], references: [id], onDelete: Cascade)
+  attempts MissionAttempt[]
+
+  @@index([childId, startedAt])
+  @@map("game_sessions")
+}
+
+enum AttemptStatus {
+  IN_PROGRESS
+  COMPLETED
+  ABANDONED
+}
+
+model MissionAttempt {
+  id              String        @id @default(uuid())
+  childId         String
+  missionId       String
+  sessionId       String?
+  status          AttemptStatus @default(IN_PROGRESS)
+  // Marks earned. Null until the attempt completes.
+  score           Int?
+  maxScore        Int           @default(100)
+  startedAt       DateTime      @default(now())
+  completedAt     DateTime?
+  durationSeconds Int           @default(0)
+
+  child     Child        @relation(fields: [childId], references: [id], onDelete: Cascade)
+  mission   Mission      @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  session   GameSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  decisions Decision[]
+
+  @@index([childId, startedAt])
+  @@index([childId, missionId])
+  @@map("mission_attempts")
+}
+
+// Every in-game choice the child makes. This is the raw material behind the
+// dashboard's skill scores, so it is stored per choice rather than pre-aggregated.
+model Decision {
+  id         String   @id @default(uuid())
+  attemptId  String
+  childId    String
+  // Stable identifier for the question, e.g. "cross_road_without_looking".
+  promptCode String
+  promptText String
+  choiceText String
+  skill      Skill
+  isCorrect  Boolean
+  // Marks this choice contributed. Negative values are allowed for unsafe choices.
+  scoreDelta Int      @default(0)
+  decidedAt  DateTime @default(now())
+
+  attempt MissionAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  child   Child          @relation(fields: [childId], references: [id], onDelete: Cascade)
+
+  @@index([childId, decidedAt])
+  @@index([attemptId])
+  @@map("decisions")
+}
+
+// One row per child per skill per day. Current scores are always derived from
+// decisions; these snapshots exist so the dashboard's trend chart can show real
+// history instead of interpolating between two points.
+model SkillSnapshot {
+  id      String   @id @default(uuid())
+  childId String
+  skill   Skill
+  score   Int
+  day     DateTime @db.Date
+
+  child Child @relation(fields: [childId], references: [id], onDelete: Cascade)
+
+  @@unique([childId, skill, day])
+  @@index([childId, day])
+  @@map("skill_snapshots")
+}
+
+// ---------------------------------------------------------------------------
+// Parent assistant
+// ---------------------------------------------------------------------------
+
+enum ChatRole {
+  PARENT
+  AI
+}
+
+model ChatMessage {
+  id        String   @id @default(uuid())
+  parentId  String
+  childId   String
+  role      ChatRole
+  content   String
+  createdAt DateTime @default(now())
+
+  parent Parent @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  child  Child  @relation(fields: [childId], references: [id], onDelete: Cascade)
+
+  @@index([parentId, childId, createdAt])
+  @@map("chat_messages")
+}
