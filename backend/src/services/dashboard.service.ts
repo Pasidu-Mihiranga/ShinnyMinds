@@ -15,7 +15,15 @@ import {
   skillNote,
   wellbeingLabel,
 } from '../domain/skills.js';
-import { addDays, formatDayLabel, formatRange, lastNDays, startOfUtcDay, toDayKey } from '../lib/dates.js';
+import {
+  addDays,
+  formatDayLabel,
+  formatRange,
+  lastNLocalDays,
+  localDayKey,
+  startOfLocalDay,
+  toDayKey,
+} from '../lib/dates.js';
 
 const WEEK_DAYS = 7;
 
@@ -39,42 +47,55 @@ export const dashboardService = {
     const children = await accountRepository.listChildrenForParent(parentId);
 
     return Promise.all(
-      children.map(async (child) => ({
-        ...toChildView(child),
-        overallScore: await progressService.overall(child.id),
-      })),
+      children.map(async (child) => {
+        const summary = await progressService.summary(child.id);
+
+        return {
+          ...toChildView(child),
+          overallScore: overallScore(summary.scores),
+          hasPlayed: summary.hasData,
+        };
+      }),
     );
   },
 
   async overview(parentId: string, childId: string) {
     const child = await this.assertOwnsChild(parentId, childId);
 
-    const weekStart = addDays(startOfUtcDay(new Date()), -(WEEK_DAYS - 1));
+    const now = new Date();
+    const todayStart = startOfLocalDay(now);
+    const weekStart = addDays(todayStart, -(WEEK_DAYS - 1));
 
-    const [scores, weekAttempts, weekPlaytime, todayPlaytime] = await Promise.all([
-      progressService.currentScores(childId),
+    const [summary, weekAttempts, weekPlaytime, todayPlaytime] = await Promise.all([
+      progressService.summary(childId),
       gameplayRepository.listAttempts(childId, { since: weekStart }),
       gameplayRepository.totalPlaytimeSeconds(childId, weekStart),
-      gameplayRepository.totalPlaytimeSeconds(childId, startOfUtcDay(new Date())),
+      gameplayRepository.totalPlaytimeSeconds(childId, todayStart),
     ]);
 
     const completed = weekAttempts.filter((attempt) => attempt.status === 'COMPLETED');
     const skillsPracticed = new Set(weekAttempts.map((attempt) => attempt.mission.skill)).size;
 
-    const overall = overallScore(scores);
+    const overall = overallScore(summary.scores);
 
     return {
       child: toChildView(child),
-      overallWellbeing: { score: overall, label: wellbeingLabel(overall) },
-      skills: ALL_SKILLS.map((skill) => toSkillCard(skill, scores[skill])),
+      // Without any recorded decisions the scores are a neutral placeholder, not a
+      // measurement. Saying so lets the dashboard avoid presenting 50/100 as a result.
+      hasPlayed: summary.hasData,
+      overallWellbeing: {
+        score: overall,
+        label: summary.hasData ? wellbeingLabel(overall) : 'Not enough data yet',
+      },
+      skills: ALL_SKILLS.map((skill) => toSkillCard(skill, summary.scores[skill], summary.hasData)),
       weekSummary: {
-        range: formatRange(weekStart, new Date()),
+        range: formatRange(localDayKey(weekStart), localDayKey(now)),
         scenariosCompleted: completed.length,
         skillsPracticed,
         screenTimeTodayMin: Math.round(todayPlaytime / 60),
         screenTimePerDayMin: Math.round(weekPlaytime / 60 / WEEK_DAYS),
       },
-      aiTip: buildTip(child.displayName, scores),
+      aiTip: buildTip(child.displayName, summary.scores, summary.hasData),
     };
   },
 
@@ -82,12 +103,12 @@ export const dashboardService = {
   async skillsProgress(parentId: string, childId: string, days = WEEK_DAYS) {
     await this.assertOwnsChild(parentId, childId);
 
-    const window = lastNDays(days);
-    const windowStart = window[0] ?? startOfUtcDay(new Date());
+    const window = lastNLocalDays(days);
+    const windowStart = window[0] ?? localDayKey(new Date());
 
-    const [snapshots, currentScores] = await Promise.all([
+    const [snapshots, summary] = await Promise.all([
       analyticsRepository.listSnapshots(childId, windowStart),
-      progressService.currentScores(childId),
+      progressService.summary(childId),
     ]);
 
     const byDay = new Map<string, Map<Skill, number>>();
@@ -102,6 +123,7 @@ export const dashboardService = {
 
     return {
       days: window.map(formatDayLabel),
+      hasPlayed: summary.hasData,
       series: ALL_SKILLS.map((skill) => {
         // Days before the child ever played have no snapshot. Carrying the previous
         // value forward draws a flat line rather than a misleading drop to zero.
@@ -122,7 +144,7 @@ export const dashboardService = {
           label: SKILL_LABELS[skill],
           color: SKILL_COLORS[skill],
           values,
-          current: currentScores[skill],
+          current: summary.scores[skill],
         };
       }),
     };
@@ -152,11 +174,11 @@ export const dashboardService = {
   async insights(parentId: string, childId: string) {
     await this.assertOwnsChild(parentId, childId);
 
-    const weekStart = addDays(startOfUtcDay(new Date()), -(WEEK_DAYS - 1));
+    const weekStart = addDays(startOfLocalDay(new Date()), -(WEEK_DAYS - 1));
 
-    const [attempts, scores] = await Promise.all([
+    const [attempts, summary] = await Promise.all([
       gameplayRepository.listAttempts(childId, { since: weekStart }),
-      progressService.currentScores(childId),
+      progressService.summary(childId),
     ]);
 
     const completed = attempts.filter((attempt) => attempt.status === 'COMPLETED');
@@ -170,6 +192,7 @@ export const dashboardService = {
     const total = completed.length;
 
     return {
+      hasPlayed: summary.hasData,
       weeklyCompletions: {
         total,
         breakdown: ALL_SKILLS.filter((skill) => (counts.get(skill) ?? 0) > 0).map((skill) => {
@@ -184,35 +207,42 @@ export const dashboardService = {
           };
         }),
       },
-      needsAttention: needsAttention(scores)
-        .slice(0, 2)
-        .map((skill) => toSkillCard(skill, scores[skill])),
+      // A child who has never played scores a neutral 50 in every skill, which is below
+      // the attention threshold. Flagging all four would tell a parent to worry about
+      // results that do not exist.
+      needsAttention: summary.hasData
+        ? needsAttention(summary.scores)
+            .slice(0, 2)
+            .map((skill) => toSkillCard(skill, summary.scores[skill], true))
+        : [],
     };
   },
 };
 
-function toSkillCard(skill: Skill, score: number) {
+function toSkillCard(skill: Skill, score: number, hasData: boolean) {
   return {
     key: skill,
     label: SKILL_LABELS[skill],
     score,
     color: SKILL_COLORS[skill],
     icon: SKILL_ICONS[skill],
-    note: skillNote(score),
+    note: hasData ? skillNote(score) : 'Not practised yet',
   };
 }
 
 /** A deterministic one-line tip. The conversational assistant lives in chat.service. */
-function buildTip(childName: string, scores: Record<Skill, number>): string {
-  const weakest = [...ALL_SKILLS].sort((a, b) => scores[a] - scores[b])[0];
-  const strongest = [...ALL_SKILLS].sort((a, b) => scores[b] - scores[a])[0];
-
-  if (!weakest || !strongest) {
-    return `${childName} has not played yet. Start a mission together to see progress here.`;
+function buildTip(childName: string, scores: Record<Skill, number>, hasData: boolean): string {
+  if (!hasData) {
+    return `${childName} hasn't played a mission yet. Once they do, their strengths and the areas to work on will appear here.`;
   }
 
-  if (scores[strongest] === scores[weakest]) {
-    return `${childName} is off to an even start across all four skills. Keep practising to see where their strengths emerge.`;
+  const byScore = [...ALL_SKILLS].sort((a, b) => scores[a] - scores[b]);
+
+  const weakest = byScore[0];
+  const strongest = byScore[byScore.length - 1];
+
+  if (!weakest || !strongest || scores[strongest] === scores[weakest]) {
+    return `${childName} is scoring evenly across all four skills. Keep practising to see where their strengths emerge.`;
   }
 
   return (

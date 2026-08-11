@@ -102,7 +102,7 @@ namespace ShinyMinds.Api
                 }));
         }
 
-        public Coroutine LinkParent(string parentLinkCode, Action<ApiResult<AuthResponse>> onDone)
+        public Coroutine LinkParent(string parentLinkCode, Action<ApiResult<LinkParentResponse>> onDone)
         {
             return StartCoroutine(
                 Send("POST", "/api/auth/player/link-parent", new { parentLinkCode }, true, onDone));

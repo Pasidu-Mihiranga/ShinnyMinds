@@ -1,5 +1,6 @@
 import cors from 'cors';
 import express from 'express';
+import type { NextFunction, Request, Response } from 'express';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import { env } from './config/env.js';
@@ -30,6 +31,18 @@ export function createApp() {
   );
 
   app.use(express.json({ limit: '256kb' }));
+
+  // A malformed body throws before any route runs. Left alone it surfaces as a 500,
+  // which reads as a server fault when the request was simply not valid JSON.
+  app.use((error: unknown, _req: Request, res: Response, next: NextFunction) => {
+    if (error instanceof SyntaxError && 'body' in error) {
+      return res.status(400).json({
+        error: { code: 'BAD_REQUEST', message: 'Request body is not valid JSON.' },
+      });
+    }
+
+    return next(error);
+  });
 
   if (!env.isProduction) {
     app.use(morgan('dev'));

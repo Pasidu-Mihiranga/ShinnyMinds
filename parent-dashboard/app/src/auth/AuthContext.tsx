@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import { api, setSessionLostHandler, tokenStore } from '../api/client';
+import { ApiError, api, setSessionLostHandler, tokenStore } from '../api/client';
 import type { ChildWithScore, Parent } from '../api/types';
 
 /**
@@ -14,6 +14,9 @@ interface AuthState {
   parent: Parent | null;
   children: ChildWithScore[];
   selectedChild: ChildWithScore | null;
+  /** Set when startup failed for a reason other than a rejected session. */
+  startupError: string | null;
+  retryStartup: () => void;
   selectChild: (childId: string) => void;
   signIn: (email: string, password: string) => Promise<void>;
   register: (displayName: string, email: string, password: string) => Promise<void>;
@@ -29,6 +32,8 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
   const [status, setStatus] = useState<AuthState['status']>('loading');
   const [parent, setParent] = useState<Parent | null>(null);
   const [childList, setChildList] = useState<ChildWithScore[]>([]);
+  const [startupError, setStartupError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
   const [selectedChildId, setSelectedChildId] = useState<string | null>(
     () => localStorage.getItem(SELECTED_CHILD_KEY),
   );
@@ -47,30 +52,55 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
     });
   }, []);
 
-  const bootstrap = useCallback(async () => {
-    if (!tokenStore.isSignedIn) {
-      setStatus('signed-out');
-
-      return;
-    }
-
-    try {
-      const { parent: me } = await api.auth.me();
-
-      setParent(me);
-
-      await loadChildren();
-
-      setStatus('signed-in');
-    } catch {
-      tokenStore.clear();
-      setStatus('signed-out');
-    }
-  }, [loadChildren]);
-
   useEffect(() => {
+    let cancelled = false;
+
+    async function bootstrap() {
+      if (!tokenStore.isSignedIn) {
+        setStatus('signed-out');
+
+        return;
+      }
+
+      setStatus('loading');
+      setStartupError(null);
+
+      try {
+        const { parent: me } = await api.auth.me();
+
+        if (cancelled) return;
+
+        setParent(me);
+
+        await loadChildren();
+
+        if (cancelled) return;
+
+        setStatus('signed-in');
+      } catch (cause) {
+        if (cancelled) return;
+
+        // Only a session the server actually rejected should be discarded. Clearing
+        // tokens on any failure meant a momentary network drop, or a backend restart,
+        // silently logged the parent out and lost their session for good.
+        if (cause instanceof ApiError && cause.status === 401) {
+          tokenStore.clear();
+        } else {
+          setStartupError(
+            cause instanceof ApiError ? cause.message : 'Could not reach the server.',
+          );
+        }
+
+        setStatus('signed-out');
+      }
+    }
+
     void bootstrap();
-  }, [bootstrap]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [loadChildren, attempt]);
 
   // A refresh token that has expired or been revoked drops the app back to sign-in
   // from wherever the user happened to be.
@@ -95,6 +125,7 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
 
       tokenStore.save(result.tokens);
       setParent(result.parent);
+      setStartupError(null);
 
       await loadChildren();
 
@@ -109,6 +140,7 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
 
       tokenStore.save(result.tokens);
       setParent(result.parent);
+      setStartupError(null);
 
       await loadChildren();
 
@@ -123,6 +155,7 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
     setParent(null);
     setChildList([]);
     setSelectedChildId(null);
+    setStartupError(null);
     setStatus('signed-out');
   }, []);
 
@@ -132,13 +165,15 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
       parent,
       children: childList,
       selectedChild: childList.find((child) => child.id === selectedChildId) ?? null,
+      startupError,
+      retryStartup: () => setAttempt((value) => value + 1),
       selectChild: setSelectedChildId,
       signIn,
       register,
       signOut,
       reloadChildren: loadChildren,
     }),
-    [status, parent, childList, selectedChildId, signIn, register, signOut, loadChildren],
+    [status, parent, childList, selectedChildId, startupError, signIn, register, signOut, loadChildren],
   );
 
   return <AuthContext.Provider value={value}>{reactChildren}</AuthContext.Provider>;

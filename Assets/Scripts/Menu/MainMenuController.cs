@@ -56,7 +56,22 @@ namespace ShinyMinds.Menu
         // Missions and profile
         private RectTransform _missionList;
         private TextMeshProUGUI _profileBody;
+        private RectTransform _linkParentGroup;
+        private TMP_InputField _linkParentField;
+        private Button _linkParentButton;
+        private TextMeshProUGUI _linkParentMessage;
         private TextMeshProUGUI _statusLine;
+
+        // Fixed display order for skills. The profile arrives as a dictionary, whose
+        // iteration order is not guaranteed, so listing it directly would let the four
+        // skills reorder themselves between visits.
+        private static readonly string[] SkillOrder =
+        {
+            "SAFETY",
+            "COMMUNICATION",
+            "EMPATHY",
+            "CONFIDENCE",
+        };
 
         private PlayerProfile _profile;
         private readonly List<GameObject> _missionRows = new List<GameObject>();
@@ -234,7 +249,77 @@ namespace ShinyMinds.Menu
             _profileBody = MenuUI.CreateText(_profilePanel, string.Empty, MenuTheme.BodyFontSize,
                 MenuTheme.Ink, TextAlignmentOptions.Left);
 
+            // Shown only while the player has no parent attached. Without this, a child
+            // who skipped the code at sign-up had no way to link afterwards.
+            GameObject group = new GameObject("LinkParent", typeof(VerticalLayoutGroup), typeof(ContentSizeFitter));
+            group.transform.SetParent(_profilePanel, false);
+
+            VerticalLayoutGroup groupLayout = group.GetComponent<VerticalLayoutGroup>();
+            groupLayout.spacing = 12f;
+            groupLayout.childControlWidth = true;
+            groupLayout.childControlHeight = true;
+            groupLayout.childForceExpandWidth = true;
+            groupLayout.childForceExpandHeight = false;
+
+            group.GetComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            _linkParentGroup = group.GetComponent<RectTransform>();
+
+            _linkParentField = MenuUI.CreateField(_linkParentGroup, "Parent code");
+            _linkParentField.characterLimit = 6;
+
+            _linkParentMessage = MenuUI.CreateText(_linkParentGroup, string.Empty,
+                MenuTheme.SmallFontSize, MenuTheme.ErrorText, TextAlignmentOptions.Center);
+
+            _linkParentButton = MenuUI.CreateButton(_linkParentGroup, "Link to Parent",
+                MenuTheme.Primary, OnLinkParent, 56f);
+
             MenuUI.CreateButton(_profilePanel, "Back", MenuTheme.Disabled, () => Show(Screen.Main), 56f);
+        }
+
+        private void OnLinkParent()
+        {
+            string code = _linkParentField.text.Trim().ToUpperInvariant();
+
+            if (code.Length != 6)
+            {
+                _linkParentMessage.color = MenuTheme.ErrorText;
+                _linkParentMessage.text = "A parent code is 6 characters.";
+
+                return;
+            }
+
+            _linkParentButton.interactable = false;
+            _linkParentMessage.text = string.Empty;
+
+            ApiClient.Instance.LinkParent(code, result =>
+            {
+                _linkParentButton.interactable = true;
+
+                if (!result.Success)
+                {
+                    _linkParentMessage.color = MenuTheme.ErrorText;
+                    _linkParentMessage.text = result.ErrorMessage;
+
+                    return;
+                }
+
+                _linkParentMessage.color = MenuTheme.SuccessText;
+                _linkParentMessage.text = "Linked! Your parent can see your progress now.";
+
+                _linkParentField.text = string.Empty;
+
+                // Re-read the profile so IsLinkedToParent is current and the form hides.
+                ApiClient.Instance.GetProfile(profileResult =>
+                {
+                    if (profileResult.Success)
+                    {
+                        _profile = profileResult.Data;
+
+                        UpdateProfileText();
+                    }
+                });
+            });
         }
 
         // ------------------------------------------------------------ navigation
@@ -434,9 +519,12 @@ namespace ShinyMinds.Menu
 
             if (_profile.Skills != null)
             {
-                foreach (KeyValuePair<string, int> entry in _profile.Skills)
+                foreach (string skill in SkillOrder)
                 {
-                    builder.AppendLine($"  {PrettySkill(entry.Key)}: {entry.Value} / 100");
+                    if (_profile.Skills.TryGetValue(skill, out int score))
+                    {
+                        builder.AppendLine($"  {PrettySkill(skill)}: {score} / 100");
+                    }
                 }
             }
 
@@ -446,6 +534,8 @@ namespace ShinyMinds.Menu
                 : "Not linked to a parent yet. Ask them for their 6-character code.");
 
             _profileBody.text = builder.ToString();
+
+            _linkParentGroup.gameObject.SetActive(!_profile.Child.IsLinkedToParent);
         }
 
         // ------------------------------------------------------------ menu actions

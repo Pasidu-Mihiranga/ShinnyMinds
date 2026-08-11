@@ -62,6 +62,11 @@ public class ElevenLabsTTS : MonoBehaviour
         string voiceId
     )
     {
+        // Claimed before the request starts, not when playback begins. GroqDialogue gates
+        // the "E = Next" key on IsSpeaking, so leaving it false during generation let the
+        // player skip past a line while its audio was still being fetched.
+        IsSpeaking = true;
+
         string elevenLabsApiKey = GameConfig.ElevenLabsApiKey;
 
         if (string.IsNullOrWhiteSpace(elevenLabsApiKey))

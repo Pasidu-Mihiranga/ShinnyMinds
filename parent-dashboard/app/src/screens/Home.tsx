@@ -3,7 +3,7 @@ import TopBar from '../components/TopBar';
 import ProgressRing from '../components/ProgressRing';
 import SkillIcon from '../components/SkillIcon';
 import ChildAvatar from '../components/ChildAvatar';
-import { ErrorCard, LoadingCard, NoChildCard } from '../components/StateViews';
+import { EmptyCard, ErrorCard, LoadingCard, NoChildCard } from '../components/StateViews';
 import { LightbulbIcon, CalendarIcon } from '../components/icons';
 import { api } from '../api/client';
 import { useApiData } from '../hooks/useApiData';
@@ -17,11 +17,13 @@ export default function Home() {
   const overview = useApiData(
     useCallback(() => api.overview(childId as string), [childId]),
     [childId],
+    { enabled: Boolean(childId) },
   );
 
   const activity = useApiData(
     useCallback(() => api.activity(childId as string, 3), [childId]),
     [childId],
+    { enabled: Boolean(childId) },
   );
 
   // A parent with no linked child sees the code to share, not an empty dashboard.
@@ -63,7 +65,16 @@ export default function Home() {
         {overview.loading && <LoadingCard label="Loading progress…" />}
         {overview.error && <ErrorCard message={overview.error} onRetry={overview.reload} />}
 
-        {overview.data && (
+        {/* Before any mission is played every skill sits at a neutral 50. Showing the
+            ring here would present that placeholder as a real 50% result. */}
+        {overview.data && !overview.data.hasPlayed && (
+          <EmptyCard
+            title={`${selectedChild.displayName} hasn't played yet`}
+            body="Wellbeing and skill scores appear as soon as they finish their first mission in the game."
+          />
+        )}
+
+        {overview.data?.hasPlayed && (
           <>
             <div className="rounded-3xl bg-white border border-slate-100 shadow-sm p-5">
               <h2 className="text-[15px] font-bold text-slate-900 mb-3">Overall Wellbeing</h2>

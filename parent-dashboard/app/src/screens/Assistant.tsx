@@ -33,11 +33,13 @@ export default function Assistant() {
   const history = useApiData(
     useCallback(() => api.chat.history(childId as string), [childId]),
     [childId],
+    { enabled: Boolean(childId) },
   );
 
   const overview = useApiData(
     useCallback(() => api.overview(childId as string), [childId]),
     [childId],
+    { enabled: Boolean(childId) },
   );
 
   useEffect(() => {

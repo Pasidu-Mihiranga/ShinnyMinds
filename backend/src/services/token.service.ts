@@ -78,7 +78,15 @@ export const tokenService = {
       throw HttpError.unauthorized('Your session has expired. Please sign in again.');
     }
 
-    await accountRepository.revokeRefreshToken(stored.tokenHash);
+    // The revoke is the point at which this token is claimed, and only one caller can
+    // win it: the update matches on revokedAt IS NULL, so a second request racing with
+    // the first updates no rows. Ignoring that count would have let one refresh token
+    // be redeemed twice, defeating the rotation.
+    const claimed = await accountRepository.revokeRefreshToken(stored.tokenHash);
+
+    if (claimed === 0) {
+      throw HttpError.unauthorized('Your session has expired. Please sign in again.');
+    }
 
     const role: AccountRole = stored.parentId ? 'parent' : 'child';
     const subjectId = stored.parentId ?? stored.childId;

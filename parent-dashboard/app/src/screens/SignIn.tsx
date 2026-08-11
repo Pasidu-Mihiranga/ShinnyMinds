@@ -9,7 +9,7 @@ import { useAuth } from '../auth/AuthContext';
  * time should not have to hunt for a sign-up link.
  */
 export default function SignIn() {
-  const { signIn, register } = useAuth();
+  const { signIn, register, startupError, retryStartup } = useAuth();
 
   const [mode, setMode] = useState<'signin' | 'register'>('signin');
   const [displayName, setDisplayName] = useState('');
@@ -59,6 +59,20 @@ export default function SignIn() {
           {registering ? 'Create your parent account.' : 'Sign in to follow your child’s progress.'}
         </p>
       </div>
+
+      {/* The session was kept, not discarded - this is the server being unreachable,
+          and saying so stops it reading as "you have been logged out". */}
+      {startupError && (
+        <div className="mb-5 rounded-2xl bg-amber-50 border border-amber-200 px-4 py-3 text-center">
+          <p className="text-sm text-amber-800">{startupError}</p>
+          <button
+            onClick={retryStartup}
+            className="mt-1.5 text-sm font-semibold text-amber-900 underline"
+          >
+            Try again
+          </button>
+        </div>
+      )}
 
       <form onSubmit={submit} className="space-y-4" noValidate>
         {registering && (

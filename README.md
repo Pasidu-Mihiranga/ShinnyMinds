@@ -209,6 +209,20 @@ A snapshot of all four scores is written once per day, which is what draws the t
 chart. Days before a child first played have no snapshot at all, so the chart shows a
 gap rather than a misleading drop to zero.
 
+**A child who has never played is not a child scoring 50.** Every read model carries a
+`hasPlayed` flag, and the dashboard uses it: with no recorded decisions it shows "hasn't
+played yet" rather than a 50% wellbeing ring, flags nothing as needing attention, and
+tells the assistant in so many words that the numbers are placeholders.
+
+### When a day starts
+
+`APP_TIMEZONE_OFFSET_MINUTES` in `backend/.env` defines the day boundary for playtime
+and for daily snapshots — `330` for Sri Lanka, `0` for UTC. It is applied both when a
+snapshot is written and when the dashboard asks for "today", so the two can't disagree.
+Left at UTC, a family at UTC+5:30 would have their day roll over at 5:30am local and
+early-morning play would land on the previous day. Set it before there is data;
+changing it later shifts which day existing snapshots belong to.
+
 ---
 
 ## The API

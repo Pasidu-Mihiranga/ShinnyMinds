@@ -16,6 +16,11 @@ const schema = z.object({
 
   CORS_ORIGINS: z.string().default('http://localhost:5173'),
 
+  // Minutes east of UTC, e.g. 330 for Sri Lanka / India (UTC+5:30), 0 for UTC.
+  // Defines when a "day" starts for playtime and daily skill snapshots. Changing it
+  // after data exists shifts which day past snapshots appear to belong to.
+  APP_TIMEZONE_OFFSET_MINUTES: z.coerce.number().int().min(-840).max(840).default(0),
+
   JWT_ACCESS_SECRET: z
     .string()
     .min(32, 'JWT_ACCESS_SECRET must be at least 32 characters. Generate one with: openssl rand -base64 48'),

@@ -27,6 +27,8 @@ export interface Child {
 
 export interface ChildWithScore extends Child {
   overallScore: number;
+  /** False until the child has made at least one recorded choice. */
+  hasPlayed: boolean;
 }
 
 export interface Tokens {
@@ -51,6 +53,11 @@ export interface SkillCard {
 
 export interface Overview {
   child: Child;
+  /**
+   * False until the child has made at least one recorded choice. Scores are a neutral
+   * 50 until then, so this is what separates "average" from "nothing measured yet".
+   */
+  hasPlayed: boolean;
   overallWellbeing: { score: number; label: string };
   skills: SkillCard[];
   weekSummary: {
@@ -65,6 +72,7 @@ export interface Overview {
 
 export interface SkillsProgress {
   days: string[];
+  hasPlayed: boolean;
   series: {
     key: SkillKey;
     label: string;
@@ -90,6 +98,7 @@ export interface ActivityItem {
 }
 
 export interface Insights {
+  hasPlayed: boolean;
   weeklyCompletions: {
     total: number;
     breakdown: { key: SkillKey; label: string; count: number; pct: number; color: string }[];

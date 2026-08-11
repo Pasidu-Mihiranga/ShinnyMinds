@@ -6,7 +6,7 @@ import { dashboardService } from './dashboard.service.js';
 import { progressService } from './progress.service.js';
 import { groqService, type GroqMessage } from './groq.service.js';
 import { ALL_SKILLS, SKILL_LABELS } from '../domain/skills.js';
-import { addDays, startOfUtcDay } from '../lib/dates.js';
+import { addDays, startOfLocalDay } from '../lib/dates.js';
 import { HttpError } from '../lib/http-error.js';
 
 /** How much prior conversation is replayed to the model. */
@@ -42,13 +42,10 @@ export const chatService = {
       );
     }
 
-    const parentMessage = await analyticsRepository.createChatMessage({
-      parentId,
-      childId,
-      role: 'PARENT',
-      content: text,
-    });
-
+    // Nothing is written until there is a reply to write with it. Saving the question
+    // first meant a failed or unconfigured assistant left a message in the transcript
+    // that nothing ever answered - and which reappeared on the next page load, after
+    // the browser had already removed it.
     const [context, history] = await Promise.all([
       this.buildContext(childId),
       analyticsRepository.listChatMessages(parentId, childId, HISTORY_LIMIT),
@@ -56,22 +53,20 @@ export const chatService = {
 
     const messages: GroqMessage[] = [
       { role: 'system', content: context },
-      ...history
-        .filter((message) => message.id !== parentMessage.id)
-        .map((message) => ({
-          role: message.role === 'AI' ? ('assistant' as const) : ('user' as const),
-          content: message.content,
-        })),
+      ...history.map((message) => ({
+        role: message.role === 'AI' ? ('assistant' as const) : ('user' as const),
+        content: message.content,
+      })),
       { role: 'user', content: text },
     ];
 
     const reply = await groqService.complete(messages);
 
-    const aiMessage = await analyticsRepository.createChatMessage({
+    const { parentMessage, aiMessage } = await analyticsRepository.createExchange({
       parentId,
       childId,
-      role: 'AI',
-      content: reply,
+      parentText: text,
+      aiText: reply,
     });
 
     return {
@@ -92,16 +87,17 @@ export const chatService = {
 
   /** Builds the system prompt: role, ground rules, and this child's real figures. */
   async buildContext(childId: string): Promise<string> {
-    const weekStart = addDays(startOfUtcDay(new Date()), -6);
+    const weekStart = addDays(startOfLocalDay(new Date()), -6);
 
     const child = await accountRepository.findChildById(childId);
 
-    const [scores, tallies, attempts, playtimeSeconds] = await Promise.all([
-      progressService.currentScores(childId),
-      progressService.tallies(childId),
+    const [summary, attempts, playtimeSeconds] = await Promise.all([
+      progressService.summary(childId),
       gameplayRepository.listAttempts(childId, { since: weekStart }),
       gameplayRepository.totalPlaytimeSeconds(childId, weekStart),
     ]);
+
+    const { scores, tallies } = summary;
 
     const name = child?.displayName ?? 'the child';
     const age = child?.age ? `${child.age}` : 'unknown';
@@ -124,6 +120,14 @@ export const chatService = {
             )
             .join('\n');
 
+    // A child with no recorded decisions scores a neutral 50 everywhere. Left unsaid,
+    // the model would discuss those placeholders as though they were measurements.
+    const dataNote = summary.hasData
+      ? `These scores are based on ${summary.decisionCount} recorded choice(s).`
+      : 'IMPORTANT: this child has not made any recorded choices yet. The scores below are ' +
+        'neutral placeholders, NOT measurements. Do not describe them as results, strengths ' +
+        'or weaknesses. Encourage the parent to have them play a first mission.';
+
     return [
       'You are the ShinyMinds parent assistant. ShinyMinds is an educational game that teaches',
       'children aged 8-14 about personal safety, communication, empathy and confidence.',
@@ -138,6 +142,8 @@ export const chatService = {
       '',
       `CHILD: ${name}, age ${age}`,
       `PLAYTIME (last 7 days): ${Math.round(playtimeSeconds / 60)} minutes`,
+      '',
+      dataNote,
       '',
       'CURRENT SKILL SCORES (0-100, higher is better):',
       skillLines,

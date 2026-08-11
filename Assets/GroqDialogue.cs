@@ -346,6 +346,13 @@ public class GroqDialogue : MonoBehaviour
             (tts == null || !tts.IsSpeaking)
         )
         {
+            // The panel is also shown while generating, and when generation fails there
+            // are no lines at all. Advancing then would dereference a null array.
+            if (dialogueLines == null)
+            {
+                return;
+            }
+
             currentLine++;
 
             if (currentLine < dialogueLines.Length)

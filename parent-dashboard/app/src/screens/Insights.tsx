@@ -25,21 +25,27 @@ export default function Insights() {
 
   const [tab, setTab] = useState<Tab>('Progress');
 
+  const enabled = { enabled: Boolean(childId) };
+
   const overview = useApiData(
     useCallback(() => api.overview(childId as string), [childId]),
     [childId],
+    enabled,
   );
   const progress = useApiData(
     useCallback(() => api.skillsProgress(childId as string, 7), [childId]),
     [childId],
+    enabled,
   );
   const insights = useApiData(
     useCallback(() => api.insights(childId as string), [childId]),
     [childId],
+    enabled,
   );
   const activity = useApiData(
     useCallback(() => api.activity(childId as string, 20), [childId]),
     [childId],
+    enabled,
   );
 
   if (!selectedChild) {
@@ -81,7 +87,14 @@ export default function Insights() {
         {loading && <LoadingCard label="Loading insights…" />}
         {!loading && error && <ErrorCard message={error} onRetry={overview.reload} />}
 
-        {!loading && !error && overview.data && progress.data && insights.data && (
+        {!loading && !error && overview.data && !overview.data.hasPlayed && (
+          <EmptyCard
+            title={`${selectedChild.displayName} hasn't played yet`}
+            body="Charts and skill breakdowns fill in once they finish their first mission."
+          />
+        )}
+
+        {!loading && !error && overview.data?.hasPlayed && progress.data && insights.data && (
           <>
             {tab === 'Progress' && (
               <ProgressTab
@@ -89,6 +102,7 @@ export default function Insights() {
                 progress={progress.data}
                 insights={insights.data}
                 activity={activity.data?.activity ?? []}
+                activityLoading={activity.loading}
               />
             )}
             {tab === 'Skills' && <SkillsTab overview={overview.data} />}
@@ -107,11 +121,13 @@ function ProgressTab({
   progress,
   insights,
   activity,
+  activityLoading,
 }: {
   overview: Overview;
   progress: SkillsProgress;
   insights: InsightsData;
   activity: ActivityItem[];
+  activityLoading: boolean;
 }) {
   // Strengths are the top three skills by score, so the list reflects this child
   // rather than a fixed order.
@@ -242,7 +258,7 @@ function ProgressTab({
         )}
       </div>
 
-      <ActivityBlock items={activity.slice(0, 3)} loading={false} />
+      <ActivityBlock items={activity.slice(0, 3)} loading={activityLoading} />
     </>
   );
 }

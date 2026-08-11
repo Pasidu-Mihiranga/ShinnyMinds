@@ -34,6 +34,16 @@ namespace ShinyMinds.Api
         [JsonProperty("tokens")] public TokenPair Tokens;
     }
 
+    /// <summary>
+    /// Linking returns the updated child only. It deliberately issues no new tokens:
+    /// the player is already signed in and their session is unchanged.
+    /// </summary>
+    [Serializable]
+    public class LinkParentResponse
+    {
+        [JsonProperty("child")] public ChildAccount Child;
+    }
+
     [Serializable]
     public class RefreshResponse
     {

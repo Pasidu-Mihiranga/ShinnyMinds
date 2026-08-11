@@ -16,9 +16,37 @@ import {
  * an incremental counter drifts the moment a write is retried or a row is deleted, and
  * a child's history is small enough that recomputing is cheap.
  */
+export interface ProgressSummary {
+  tallies: Record<Skill, SkillTally>;
+  scores: Record<Skill, number>;
+  /** Total choices ever recorded. Zero means this child has never played. */
+  decisionCount: number;
+  hasData: boolean;
+}
+
 export const progressService = {
   async tallies(childId: string, since?: Date): Promise<Record<Skill, SkillTally>> {
     return tally(await gameplayRepository.listDecisions(childId, since));
+  },
+
+  /**
+   * Scores plus the evidence behind them, from a single query.
+   *
+   * `hasData` matters as much as the scores do: with no decisions every skill sits at
+   * the neutral 50, which is indistinguishable from a genuine mid-range result. Callers
+   * need to be able to say "not played yet" rather than reporting a made-up 50.
+   */
+  async summary(childId: string): Promise<ProgressSummary> {
+    const tallies = await this.tallies(childId);
+
+    const decisionCount = ALL_SKILLS.reduce((sum, skill) => sum + tallies[skill].total, 0);
+
+    return {
+      tallies,
+      scores: scoresFromTallies(tallies),
+      decisionCount,
+      hasData: decisionCount > 0,
+    };
   },
 
   async currentScores(childId: string): Promise<Record<Skill, number>> {
