@@ -49,6 +49,14 @@ public class MobileInput : MonoBehaviour
     /// <summary>True for exactly one frame after a Jump tap. Never latches.</summary>
     public bool JumpPressed { get; private set; }
 
+    /// <summary>
+    /// True while a finger is actually dragging the stick. The look gesture reads this to
+    /// disown that finger: on mobile, legacy Input reports the primary touch as the mouse, so
+    /// without it a thumb on the stick arrives at CameraController as Mouse X/Y and swings the
+    /// view while she walks.
+    /// </summary>
+    public bool StickHeld { get; private set; }
+
     bool runHeld;
     bool jumpQueued;
     bool visible = true;
@@ -58,6 +66,7 @@ public class MobileInput : MonoBehaviour
     public static float AxisV => Instance != null ? Instance.Vertical : 0f;
     public static bool RunHeld => Instance != null && Instance.Run;
     public static bool JumpTapped => Instance != null && Instance.JumpPressed;
+    public static bool StickDragging => Instance != null && Instance.StickHeld;
 
     void Awake()
     {
@@ -135,6 +144,7 @@ public class MobileInput : MonoBehaviour
         }
 
         Run = visible && runHeld;
+        StickHeld = visible && joystick != null && joystick.IsHeld;
 
         // Consume the queued tap. Queueing rather than latching a bool is what stops the
         // old bug where a tap made in mid-air stayed true forever and re-fired the jump
@@ -178,6 +188,7 @@ public class MobileInput : MonoBehaviour
         runHeld = false;
         JumpPressed = false;
         jumpQueued = false;
+        StickHeld = false;
     }
 
     // "Enter Play Mode Options -> Disable Domain Reload" keeps statics between sessions,

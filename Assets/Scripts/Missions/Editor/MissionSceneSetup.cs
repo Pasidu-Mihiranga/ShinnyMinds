@@ -23,6 +23,15 @@ namespace ShinyMinds.Missions.EditorTools
         const string SystemPrefabPath = PrefabRoot + "/Missions/MissionSystem.prefab";
         const string MissionAssetPath = "Assets/GameData/Missions/Mission01_TheRoadHome.asset";
 
+        /// <summary>
+        /// Printed by every menu item here. Unity runs a menu item against the assembly it has
+        /// already compiled, so clicking one before a recompile finishes silently runs the
+        /// PREVIOUS version — which looks exactly like the change not working. If the Console does
+        /// not name the change you just made, give the editor focus, wait for the spinner, and run
+        /// it again.
+        /// </summary>
+        const string SetupStamp = "open-world mission offer, no auto-start, Teacher + Mother placed";
+
         // ------------------------------------------------------------------ 2. prefab
 
         [MenuItem("ShinyMinds/Setup/2. Build Mission System Prefab")]
@@ -67,7 +76,10 @@ namespace ShinyMinds.Missions.EditorTools
                 Debug.LogWarning($"No mission asset at {MissionAssetPath}. Run 'ShinyMinds/Build Mission 01' and assign it on the MissionRunner.");
 
             Wire(runner,
-                ("autoStartMission", mission),
+                // Null on purpose — see EnsureMissionSystem. The school zone offers the mission;
+                // nothing starts on load. The asset is still loaded above so a warning fires if
+                // it is missing.
+                ("autoStartMission", null),
                 ("autoStartDelay", 0.5f),
                 ("ui", view),
                 ("cameraDirector", director),
@@ -113,12 +125,34 @@ namespace ShinyMinds.Missions.EditorTools
             EnsureMissionSystem(player);
             Transform staging = EnsureStaging(player);
             MissionCharacterBuilder.EnsureStrangerInScene(staging);
+            // Before WireOtherActors, which finds them by name and does the wiring.
+            MissionCharacterBuilder.EnsureTeacherAndMother();
             MissionMemoryStageBuilder.EnsureStage();
             WireOtherActors(layer);
+            EnsureMissionOfferZone(staging);
             FixCameraCollision(layer);
+            FixCameraCulling();
 
             EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
-            Debug.Log("Scene wired. Save the scene (Ctrl+S), then press Play.");
+            Debug.Log($"Scene wired — {SetupStamp}. Save the scene (Ctrl+S), then press Play.");
+        }
+
+        /// <summary>
+        /// Just the Teacher and the Mother, so the step is runnable on its own and reports what it
+        /// did. Placing them is part of Wire Open Scene, but a menu item that does one thing is
+        /// what you want when the question is "did that actually run?".
+        /// </summary>
+        [MenuItem("ShinyMinds/Setup/Place Teacher And Mother")]
+        public static void PlaceTeacherAndMother()
+        {
+            MissionCharacterBuilder.EnsureTeacherAndMother();
+            WireOtherActors(EnsureCameraIgnoreLayer());
+            FixCameraCulling();
+
+            EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+            Debug.Log($"Teacher / Mother pass done — {SetupStamp}. Read the lines above: each " +
+                      "character logs either where it was placed or why it could not be. " +
+                      "Save the scene.");
         }
 
         /// <summary>Runs the whole setup in dependency order.</summary>
@@ -149,6 +183,9 @@ namespace ShinyMinds.Missions.EditorTools
             Wire(mover,
                 ("animator", animator),
                 ("characterController", controller),
+                // Her own speeds, so a cutscene walks her at the pace the player is used to
+                // rather than at the scale-multiplied mission speeds. See ActorMover.SpeedFor.
+                ("playerController", player.GetComponent<PlayerController>()),
                 ("walkAnimValue", 2f),      // must match PlayerController's hardcoded values
                 ("runAnimValue", 6f));
 
@@ -199,8 +236,14 @@ namespace ShinyMinds.Missions.EditorTools
             }
 
             // Scene-only references, which cannot live in the prefab.
+            //
+            // autoStartMission is cleared deliberately: the city is open world, so nothing seizes
+            // control on load. MissionOffer_School offers the mission when the player walks up to
+            // the gate and MissionTrigger starts it only if they accept.
             var runner = system.GetComponent<MissionRunner>();
-            Wire(runner, ("playerTransform", player.transform));
+            Wire(runner,
+                ("playerTransform", player.transform),
+                ("autoStartMission", null));
 
             var director = system.GetComponent<MissionCameraDirector>();
             Wire(director, ("mainCamera", Camera.main));
@@ -350,6 +393,65 @@ namespace ShinyMinds.Missions.EditorTools
             return staging.transform;
         }
 
+        /// <summary>
+        /// The zone at the school gate that offers mission 01. Placed on `m_aisha_start`, which is
+        /// where the mission opens, and about 20 m from where the player spawns — so they walk
+        /// there under their own steam and are asked, not commandeered.
+        /// </summary>
+        static void EnsureMissionOfferZone(Transform staging)
+        {
+            if (staging == null) return;
+
+            const string zoneName = "MissionOffer_School";
+
+            Transform existing = staging.Find(zoneName);
+            GameObject zone;
+
+            if (existing != null)
+            {
+                zone = existing.gameObject;
+            }
+            else
+            {
+                zone = new GameObject(zoneName);
+                zone.transform.SetParent(staging, false);
+            }
+
+            Transform gate = FindMarkerInScene("m_aisha_start");
+
+            if (gate != null)
+                zone.transform.position = gate.position;
+            else
+                Debug.LogWarning("No 'm_aisha_start' marker, so the mission offer zone is at the " +
+                                 "staging root. Move it to the school gate.", zone);
+
+            var sphere = GetOrAdd<SphereCollider>(zone);
+            sphere.isTrigger = true;
+            sphere.radius = 7f;
+            sphere.center = new Vector3(0f, 1f, 0f);
+
+            var trigger = GetOrAdd<MissionTrigger>(zone);
+
+            Wire(trigger,
+                ("mission", AssetDatabase.LoadAssetAtPath<MissionData>(MissionAssetPath)),
+                ("runner", Object.FindAnyObjectByType<MissionRunner>()),
+                ("ui", Object.FindAnyObjectByType<MissionUIView>()),
+                ("startImmediately", false),
+                ("once", false),
+                ("rearmSeconds", 1.5f));
+
+            Debug.Log($"Mission offer zone '{zoneName}' is at {zone.transform.position} " +
+                      $"with a {sphere.radius}m radius.", zone);
+        }
+
+        static Transform FindMarkerInScene(string key)
+        {
+            foreach (MissionMarker m in Object.FindObjectsByType<MissionMarker>(FindObjectsInactive.Include))
+                if (m.MarkerKey == key) return m.transform;
+
+            return null;
+        }
+
         static void FixCameraCollision(int layer)
         {
             if (layer < 0) return;
@@ -364,6 +466,50 @@ namespace ShinyMinds.Missions.EditorTools
             so.ApplyModifiedPropertiesWithoutUndo();
 
             Debug.Log("CameraCollision.blockers set to exclude CameraIgnore.");
+        }
+
+        /// <summary>
+        /// Puts the physics-query layers back into the main camera's culling mask.
+        ///
+        /// `CameraIgnore` and `Vehicle` exist to be excluded from *raycasts*: one keeps camera
+        /// collision from slamming forward when a character stands behind the player, the other
+        /// keeps ActorMover's ground ray off car roofs. Neither is meant to hide anything.
+        ///
+        /// But a layer minted after a camera's culling mask was last set does not appear in that
+        /// mask, and Unity gives no warning: everything moved onto the new layer simply stops
+        /// rendering. That is how the Stranger — whose entire hierarchy is CameraIgnore — became
+        /// invisible in ordinary gameplay, along with all the traffic on Vehicle. Only the
+        /// cutscene camera (mask "everything") ever showed him.
+        ///
+        /// MemoryStage is deliberately NOT added: the diorama 600 m below the city must stay
+        /// visible to MemoryCamera alone.
+        /// </summary>
+        public static void FixCameraCulling()
+        {
+            Camera cam = Camera.main;
+
+            if (cam == null)
+            {
+                Debug.LogWarning("No enabled camera tagged MainCamera; culling mask not checked.");
+                return;
+            }
+
+            int mask = cam.cullingMask;
+
+            foreach (string layerName in new[] { "CameraIgnore", "Vehicle" })
+            {
+                int l = LayerMask.NameToLayer(layerName);
+                if (l >= 0) mask |= 1 << l;
+            }
+
+            if (mask == cam.cullingMask)
+                return;
+
+            Undo.RecordObject(cam, "Fix camera culling mask");
+            cam.cullingMask = mask;
+
+            Debug.Log($"{cam.name}: culling mask now includes CameraIgnore and Vehicle. Anything " +
+                      "on those layers — the Stranger, the traffic — was invisible to it.", cam);
         }
 
         static T GetOrAdd<T>(GameObject go) where T : Component

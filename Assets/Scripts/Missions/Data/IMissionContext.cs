@@ -65,8 +65,15 @@ namespace ShinyMinds.Missions.Data
         /// Move to a pose computed at runtime rather than authored on a marker. This is
         /// what lets a shot frame the actors wherever they actually ended up.
         /// </summary>
+        /// <param name="orbitPivot">
+        /// The point the shot is about, if it has one. Given it, the blend travels *around* the
+        /// pivot instead of straight across: the direction is slerped and the radius lerped, so
+        /// two poses the same distance out become a pure rotation with no change of distance at
+        /// all. A straight lerp between them cuts the chord and dips the camera closer to the
+        /// subject mid-blend, which on screen is a zoom in and out again.
+        /// </param>
         IEnumerator ShotToPose(Vector3 position, Quaternion rotation, float blendSeconds,
-                               Transform lookAt, bool letterbox);
+                               Transform lookAt, bool letterbox, Vector3? orbitPivot = null);
 
         /// <summary>Dolly along the view axis. Positive pushes in.</summary>
         IEnumerator PushIn(float distance, float seconds);

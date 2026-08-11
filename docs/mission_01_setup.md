@@ -159,14 +159,20 @@ MissionUI                    Canvas + CanvasScaler + GraphicRaycaster + MissionU
 │       ├── ChoiceButton_0   Button + MissionChoiceButton.cs
 │       ├── ChoiceButton_1   (same)
 │       └── ChoiceButton_2   (same)
-└── EndingCard               + MissionEndingCard.cs
-    └── Frame
-        ├── Badge            Image
-        ├── EndingTitle      TMP
+└── EndingCard               full screen + MissionEndingCard.cs — the summary screen
+    ├── Scrim                Image (black, alpha 0.55), Raycast Target OFF
+    └── Card                 1040×700 paper, 24px corners, black keyline
+        ├── Badge            Image (Sprite, never an emoji glyph)
+        ├── EndingTitle      TMP, coloured by EndingQuality
+        ├── Stars            HorizontalLayoutGroup
+        │   └── Star ×3      Image (UI_Star), tinted gold when earned, grey when not
+        ├── Rule / Rule2     Image, 2px hairline
         ├── LessonText       TMP
+        ├── AttemptText      TMP, bottom-left  ("Attempt 2")
+        ├── BestText         TMP, bottom-right ("Best so far 2 of 3")
         └── Buttons          HorizontalLayoutGroup
-            ├── RetryButton      Button + TMP label "Try Again"
-            └── ContinueButton   Button + TMP label "Continue"
+            ├── RetryButton      Button, PRIMARY (accent fill, white label) "Try Again"
+            └── ContinueButton   Button, secondary (paper, dark label) "Continue"
 ```
 
 > `Assets/Art/UI/UI_Ellipse.png` is generated on the first build: a 512px white disc,
@@ -339,10 +345,19 @@ All under `Mission01_Staging/Markers`.
 | `m_teacher_stand` / `m_aisha_at_teacher` | Path C approach pair |
 | `m_mother_arrive_spawn` / `m_mother_arrive` | Path C mother arrival |
 
-**Camera poses** — position *and* rotation both matter:
+**Camera poses.** Only **three** of these are still read by the mission — every other shot is a
+`FramedShotAction` computed from where the actors actually stand, so it needs no marker at all
+(there are 10 of those in `Mission01_TheRoadHome.asset`).
 
-`m_cam_aisha_cu` · `m_cam_meeting` · `m_cam_close` · `m_cam_choice` · `m_cam_end_a` ·
-`m_cam_home_door` · `m_cam_teacher` · `m_cam_reunion`
+| Key | Beat | Aimed by | Rotation matters |
+|---|---|---|---|
+| `m_cam_gate` | the opening hard cut, on the fade up from black | its own rotation | **yes** |
+| `m_cam_aisha_cu` | the close-up as the mission opens | `lookAtActorKey: aisha` | no — position only |
+| `m_cam_end_a` | the Path A ending, as she walks off | its own rotation | **yes** |
+
+`m_cam_meeting`, `m_cam_close`, `m_cam_choice`, `m_cam_home_door`, `m_cam_teacher` and
+`m_cam_reunion` are left over from before `FramedShotAction` existed. Nothing reads them; they can
+be deleted.
 
 > **Never name a marker `Waypoint …`.** The Hierarchy already returns ~325 hits for that
 > string and `CarAI.waypoints` is a serialized `Transform[]`, so a mis-drag creates a car

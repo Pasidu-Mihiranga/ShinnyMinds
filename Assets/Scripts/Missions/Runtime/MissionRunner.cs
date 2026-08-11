@@ -48,6 +48,7 @@ namespace ShinyMinds.Missions.Runtime
         bool memoryOpen;
         bool warnedNoMemory;
         readonly Dictionary<string, bool> flags = new Dictionary<string, bool>();
+        readonly HashSet<string> warnedMissingSpeaker = new HashSet<string>();
 
         public bool IsRunning => loop != null;
 
@@ -384,7 +385,8 @@ namespace ShinyMinds.Missions.Runtime
             bool retry = false;
             bool done = false;
 
-            ui.ShowEnding(ending,
+            // After RecordEnding above, so the summary's "attempt N" counts this run.
+            ui.ShowEnding(ending, mission.missionId,
                 onRetry: () => { retry = true; done = true; },
                 onContinue: () => { done = true; });
 
@@ -401,8 +403,22 @@ namespace ShinyMinds.Missions.Runtime
             }
             else
             {
+                // Back to the open world. The objective has to go with the mission — left up, it
+                // would hang in the corner telling the player to walk home for the rest of the
+                // session — and the camera has to come back to the follow rig.
+                ui.SetObjective(string.Empty);
                 PlayerInputLock.Release(this);
                 yield return cameraDirector.Release(0.6f);
+
+                // And the screen has to come BACK from black. Path A walks the pair off and fades
+                // out (`Fade(true, 2.0f)`) with nothing that ever fades in again: only the retry
+                // path cleared the overlay, via ResetWorld -> HideAll. Continue therefore handed
+                // the player a free-roaming city they could not see. The camera blend above runs
+                // first on purpose, so it happens behind the black rather than in view.
+                //
+                // A no-op on the paths that already faded in — Fade lerps from the overlay's
+                // current alpha, so 0 -> 0 costs nothing.
+                yield return ui.Fade(toBlack: false, seconds: 0.6f);
             }
         }
 
@@ -438,7 +454,25 @@ namespace ShinyMinds.Missions.Runtime
                 return null;
 
             IMissionActor actor = GetActor(speaker.actorKey);
-            if (actor == null || actor.GameObject == null || !actor.GameObject.activeInHierarchy)
+
+            // An empty actorKey means a bodiless voice and is silent above — but a speaker that
+            // NAMES an actor and does not find one is a missing character, and the only symptom
+            // is their line quietly appearing in the narrator's subtitle bar instead of over
+            // their head. Warned once per speaker so a whole conversation cannot bury the console.
+            if (actor == null)
+            {
+                if (warnedMissingSpeaker.Add(speaker.actorKey))
+                {
+                    Debug.LogWarning($"Speaker '{speaker.key}' names actor '{speaker.actorKey}', " +
+                                     "which is not registered in this scene. Their lines will play " +
+                                     "in the subtitle bar and no body will appear. Run " +
+                                     "'ShinyMinds/Setup/6. Wire Open Scene'.", this);
+                }
+
+                return null;
+            }
+
+            if (actor.GameObject == null || !actor.GameObject.activeInHierarchy)
                 return null;
 
             return actor.Transform;

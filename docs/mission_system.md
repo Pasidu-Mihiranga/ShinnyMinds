@@ -250,6 +250,214 @@ strings as `continuePromptText` and `touchContinuePromptText`. To check the touc
 tap-to-advance on desktop, tick **simulateTouchOnDesktop** on `MobileControls`' `MobileInput`
 — that also makes a mouse click advance.
 
+### The on-screen controls
+
+`ShinyMinds/Mobile/Rebuild Touch Controls` builds them. The stick and both buttons are **black
+frosted glass**: a smoked disc, a mottled milky frost, a black bezel, an etched gauge circle and
+four chevrons. Two rules keep it matte, and both were learnt by breaking them:
+
+- **No value is lighter than what is behind it.** The frost is tinted black rather than white for
+  that reason — a light haze is the obvious way to draw ground glass and it works over the road,
+  but over anything pale it reads as a smear of polish across the disc.
+- **Nothing is drawn outside the base circle.** No halo, no bloom, no contact shadow. A soft edge
+  spilling onto the road reads as a glow around the control however dark it is, so the bezel
+  carries the edge alone.
+
+Every piece is a *generated white shape tinted at the Image*, so the whole control recolours from
+the six `Color`s at the top of `MobileControlsBuilder`. `JoystickSpriteFactory` draws the rings,
+the chevron, the frost noise and the button glyphs from a handful of numbers; the discs come from
+the same
+`UI_Ellipse.png` the mission UI uses. Change a thickness or a falloff and delete the PNG in
+`Assets/Art/UI` to see it, the same as `CornerRadius`.
+
+Jump and Run carry **icons** rather than JUMP / RUN captions, and sit **diagonally**: Jump in the
+corner with Run one step up and in, along the arc a right thumb sweeps.
+
+The icons are `Assets/Art/UI/Icon_Jump.png` and `Icon_Run.png`, rasterised at 512px from the
+supplied `jump.svg` / `run.svg` — Unity has no SVG importer without `com.unity.vectorgraphics`, so
+the SVGs at the project root are inert. Each is a finished badge: a grey disc inside a ring with
+the figure knocked out of the disc.
+
+**They go on the button exactly as drawn** — the whole badge at the button's own size, tinted pure
+white so the artwork's greys come through untouched, and with no keyline added. A keyline would be
+a change to the design, and the design is not ours to change. The ring lands on the button's rim,
+and because the figure is negative space the frosted glass shows through it, which is what keeps
+the figure legible over both a pale wall and the dark road.
+
+If either PNG goes missing the builder falls back to a generated line-art glyph and says so in the
+Console. That fallback *is* white with a black keyline — a bare line-art glyph in one flat colour
+would vanish against one background or the other.
+
+**The stick moves her; it never moves the camera.** It drives four directions — forward, back,
+left, right — read against the camera's heading, and she turns to face the one she is walking in
+(`faceTurnSpeed` on `PlayerController`, separate from the keyboard's on-the-spot `turnSpeed`). The
+camera angle belongs to the look gesture alone, which took two fixes to hold:
+
+- **`CameraHolder` is a child of the girl**, so it inherited her rotation: transform parenting
+  carried the camera round as she faced each new walking direction, which no amount of input
+  gating could stop. The rig now owns its heading in world degrees (`yaw`) and writes
+  `transform.rotation` **every frame, including while input is locked**, discarding what the
+  parent contributed. Her rotation moves the camera's *position* — the holder sits at her origin,
+  which is what makes it follow her — and never its direction. Anything reaching for
+  `transform.Rotate` in that script is a bug, and so is putting that write behind the lock guard:
+  a cutscene that turns her to face someone would then swing the player's view a half-turn with
+  her, which is what `Face("aisha", "stranger")` did in the stranger meeting.
+- `CameraController` zeroes Mouse X/Y while `MobileInput.StickDragging` is true. On mobile, legacy
+  Input reports the primary touch as the mouse, so without this a thumb on the stick arrives as
+  mouse delta and swings the view while she walks.
+- The auto-centre that swings the rig round behind her is keyboard-only now. The stick used to
+  count as movement there so a stick turn dragged the view along — with the stick no longer
+  turning her on the spot, counting it would hand it the camera by the back door.
+- On unlock, `yaw` re-syncs to her heading, so a cutscene that walked or turned her elsewhere
+  doesn't hand control back with the camera pointing at where she used to be facing.
+
+Nothing is opaque — the road shows through every layer, which is what makes it read as glass.
+The frost is a *material* effect, not a background blur: it does not refract what is behind it.
+A true blur would mean sampling `_CameraOpaqueTexture` from a custom UI shader, which needs
+**Opaque Texture** enabled on the URP asset and does not survive a Screen Space Overlay canvas
+in every URP version — worth doing only if the frost alone proves not enough.
+
+None of this touches input: `TouchJoystick` still owns the drag and `MobileInput` still samples
+it. The layers all have **Raycast Target off** — only the base disc catches the finger, because
+a child that swallowed the pointer would cancel the drag under it.
+
+## Rotations without zooms
+
+A shot change moves the camera in two ways at once, and only one of them is usually wanted. The
+angle is a rotation; the *distance* is a zoom. A blend from a wide (≈9 m out) to a close-up
+(≈1.6 m) is the lens travelling 7 m down its own view axis, which reads as a zoom in however
+smooth it is.
+
+Two things keep a sequence to rotation alone:
+
+- `FramedShotAction.fixedDistance` overrides the distance each shot type would have picked, so
+  Wide / TwoShot / OverShoulder / CloseUp become *directions* on one orbit. Mission 01's stranger
+  meeting sets all five to `OrbitRadius` (5.5 m).
+- `ShotToPose` takes an `orbitPivot` — the aim point — and slerps the camera's arm around it
+  instead of lerping straight across. Two poses at the same radius then hold that radius through
+  the entire blend. Without it the straight line cuts the chord and dips the camera closer
+  mid-blend, which is a small zoom in and out again.
+
+The price is real and worth stating: at a fixed radius a "close-up" is not close. Getting close
+*is* moving the camera in. `OrbitRadius` trades intimacy against how much of the street stays in
+frame.
+
+## Parallel means parallel; sequential means "after everything"
+
+`RunActions` joins **every pending parallel coroutine before it starts a sequential action**. So
+two actors only move together if *both* their moves are marked `Parallel`. Mark one and the other
+waits for the first to finish its entire walk — which is how Path A had the Stranger stroll 33 m
+off-screen alone while Aisha stood at the kerb, reading as her refusing to go with him. Put the
+`Fade` or the next beat after them as a *sequential* action and it still waits for both, which is
+usually what you want.
+
+## A missing actor is silent by design, so it warns now
+
+Every consumer of an actor key degrades rather than failing: `MoveActorAction` becomes a no-op, a
+`Framed` shot on `["aisha", "teacher"]` frames Aisha alone, and a speaker whose `actorKey` does not
+resolve has their line fall back to the narrator's subtitle bar. That is deliberate — it keeps the
+story playable — but it made an entirely absent character look like a directing choice. **Neither
+the Teacher nor the Mother was in the scene at all**, only their markers, so Path C played with an
+invisible teacher.
+
+Two warnings now cover it: `FramedShotAction` reports a *partly* resolved subject list (it only
+warned when none resolved), and `MissionRunner.SpeakerBody` reports a speaker that names an actor
+the scene does not have, once per speaker. `MissionCharacterBuilder.EnsureTeacherAndMother()` places
+both from the imported-but-unused `Teacher.fbx` / `Mother.fbx`, and runs inside **Wire Open Scene**
+just before `WireOtherActors` does the component wiring.
+
+## Why characters float
+
+Unity's Humanoid retargeting seats the body from the Avatar's proportions, and for a Mixamo rig
+(FBX root exported at hip height) the rendered body can sit well above the GameObject origin. The
+residual **scales with the actor**, so a scale-5 girl floats five times as far as a scale-1 one.
+Grounding the origin is therefore not the same as grounding the character, and disabling the
+Animator only appears to fix it because the bones fall back to the bind pose — where the origin
+really is at the feet.
+
+`ActorMover` corrects this every frame (`RenderedFootLift` + `SnapDown`) for anyone who has one.
+**The memory stand-ins do not have one** — they are a Transform and an Animator — so nothing
+grounded them and the scale-2 Mother hung above the diorama floor against its sky backdrop.
+`MemoryStage.GroundStandIns()` now does it when the memory opens.
+
+Both places measure over a short settling window and keep the **smallest** lift seen, never the
+live one: the retargeting residual is constant, the clip's own vertical motion is not, and
+correcting by the live value flattens an animation into a glide. Neither can measure on frame one,
+because until the Animator has evaluated, the bounds still describe the bind pose.
+
+## Who owns an actor's speed
+
+`ActorMover`'s authored speeds are for a roughly 1-unit rig and are **multiplied by the actor's
+scale**, so a bigger actor's longer stride matches its travel. Right for the mission-only actors
+(Stranger, Teacher, Mother — all scale 2).
+
+Wrong for the player, and badly: GIRL 1 is **scale 5**, so 3.5 m/s run became 17.5 m/s while
+`PlayerController` moves the same body at 6 m/s. Path B's 20 m walk home was over in about a
+second. `ActorMover.SpeedFor` now defers to `PlayerController`'s own walk / run / backward speeds,
+unscaled, whenever one is on the object — one character, one speed, whoever is driving.
+
+The residual is visible if you look: at 6 m/s a scale-5 rig's feet slide, because the stride wants
+17.5. They slide identically under player control, which is the point.
+
+## Layers are for raycasts, not for hiding
+
+`CameraIgnore` and `Vehicle` exist so *physics queries* skip things: camera collision must not
+slam forward when a character stands behind the player, and `ActorMover`'s ground ray must not
+hit a passing car roof. Neither is a rendering instruction.
+
+But **a layer minted after a camera's culling mask was set is absent from that mask**, silently.
+That is how the Stranger — whose entire 67-object hierarchy is `CameraIgnore` — became invisible
+to the main camera, along with all 20 traffic objects on `Vehicle`. Only the cutscene camera, whose
+mask is "everything", ever showed him, so the bug hid wherever a mission took the camera over and
+appeared everywhere it did not.
+
+`MissionSceneSetup.FixCameraCulling()` ORs both layers back in, and runs from **Wire Open Scene**
+and from **Put Traffic On The Vehicle Layer**. `MemoryStage` is deliberately excluded: the diorama
+belongs to `MemoryCamera` alone.
+
+## Open world, not a cutscene on rails
+
+Nothing starts on load. `MissionRunner.autoStartMission` is deliberately **null** in both the
+prefab and the scene instance, and the mission is entered like anything else in the city:
+
+1. The player walks to the school gate and enters `MissionOffer_School` — a 7 m sphere trigger on
+   `m_aisha_start`, about 20 m from where they spawn.
+2. `MissionTrigger` shows the banner: mission title, objective, and `"<AdvanceLabel> to begin"` —
+   so it reads "Press E" on a keyboard and "Touch" on a phone, from the same source as every other
+   prompt.
+3. It accepts on `InteractKey.TryConsumeWorld()`, at execution order **−60** so an accept beats the
+   NPC zones (−50) and doors (0) sharing that doorstep. Walk away and the offer withdraws.
+4. When the mission ends and the player takes **Continue**, `MissionRunner` clears the objective,
+   releases the input lock and hands the camera back to the follow rig — free roam again. Every
+   ending sets `allowContinue = true` for that reason; a retry-only ending would trap them on the
+   summary screen.
+5. The zone re-arms on exit, so a finished mission can be replayed by walking back. `rearmSeconds`
+   (1.5 s) stops the banner reappearing under the player's finger as the summary closes.
+
+`startImmediately = true` restores the old walk-in-and-it-takes-over behaviour for a mission that
+is meant to ambush.
+
+## The summary screen
+
+`Ending` nodes show `MissionEndingCard` over a scrim: badge, outcome title coloured by
+`EndingQuality`, the stars earned, the lesson, a progress line, and **Try Again** / Continue.
+
+- The **stars are art**, not `★` characters — TMP's default LiberationSans atlas has no glyph for
+  those and renders them as empty boxes, the same reason `MissionEnding.badge` insists on a Sprite.
+  `UI_Star.png` is generated as a ten-vertex polygon with supersampled point-in-polygon coverage,
+  and the row tints rather than swaps: earned stars gold, the rest grey, so an unearned star still
+  holds its place.
+- The **progress line** is what makes it a summary rather than a result. `MissionRunner` calls
+  `SaveService.RecordEnding` *before* showing the card, so `attempts` already counts this run and
+  `bestStars` is current — the card reads them itself via `GetProgress(missionId)`, which is why
+  `ShowEnding` takes the mission id.
+- **Try Again is the primary button** (accent fill, white label) with Continue as quiet paper. A
+  safety lesson the player got wrong is exactly the case where retrying is the point, and
+  `MissionEnding.allowRetry` / `allowContinue` still decide which buttons exist at all.
+
+The scrim's Raycast Target is **off**, like `FadeOverlay`: a full-screen raycast target under
+`InputSystemUIInputModule` swallows every click and the card's own buttons stop responding.
+
 ## Retry
 
 `MissionRunner` sets `pendingRestartId` and lets `RunFrom` loop naturally — it never stops

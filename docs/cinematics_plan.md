@@ -248,6 +248,15 @@ actually *fixes* the speed-matching hack in `ActorMover.ScaleFactor` rather than
 
 ### What "good" looks like for the stranger approach
 
+> **Amended for mission 01.** All five angles below are in `BuildScene2` and are wanted. What
+> was removed is the **travelling between them**: every shot is now a hard cut (`Cut`, i.e.
+> `blendSeconds: 0`) and both `Push` dollies are gone.
+>
+> A blend from a wide to a close-up is the camera flying several metres down its own view axis,
+> which on screen is a zoom in — and the opening blend out to the wide is a zoom out. Cutting
+> changes the angle without the lens ever appearing to move. So point 3 below ("push in
+> slightly, a dolly not a cut") is the one piece of this deliberately not implemented.
+
 Worth being concrete, because this beat carries the whole lesson:
 
 - Start on a **wide** two-shot — the street feels open and safe.

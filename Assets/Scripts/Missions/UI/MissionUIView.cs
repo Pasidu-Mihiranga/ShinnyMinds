@@ -65,6 +65,14 @@ namespace ShinyMinds.Missions.UI
         [Header("Ending")]
         [SerializeField] MissionEndingCard endingCard;
 
+        [Header("Mission offer")]
+        [Tooltip("Shown when the player comes near a MissionTrigger, naming the mission and how " +
+                 "to begin it. Purely an offer — it takes no input itself.")]
+        [SerializeField] GameObject bannerPanel;
+        [SerializeField] TMP_Text bannerTitle;
+        [SerializeField] TMP_Text bannerObjective;
+        [SerializeField] TMP_Text bannerPrompt;
+
         [Header("Objective")]
         [SerializeField] ObjectiveHud objectiveHud;
 
@@ -366,15 +374,37 @@ namespace ShinyMinds.Missions.UI
 
         // ---------------------------------------------------------------- endings
 
-        public void ShowEnding(MissionEnding ending, Action onRetry, Action onContinue)
+        /// <param name="missionId">
+        /// Needed for the summary's progress line — the card reads attempts and best result from
+        /// SaveService, which MissionRunner has already updated by this point.
+        /// </param>
+        public void ShowEnding(MissionEnding ending, string missionId,
+                               Action onRetry, Action onContinue)
         {
             HideMemoryImmediate();      // an ending card must never land on a dimmed memory
             HideLine();
             HideChoices();
-            endingCard?.Show(ending, onRetry, onContinue);
+            endingCard?.Show(ending, missionId, onRetry, onContinue);
         }
 
         public void HideEnding() => endingCard?.Hide();
+
+        // ------------------------------------------------------------ mission offer
+
+        /// <summary>Names a mission the player is standing next to, and how to start it.</summary>
+        public void ShowBanner(string title, string objective, string prompt)
+        {
+            if (bannerPanel == null)
+                return;
+
+            if (bannerTitle != null) bannerTitle.text = title;
+            if (bannerObjective != null) bannerObjective.text = objective;
+            if (bannerPrompt != null) bannerPrompt.text = prompt;
+
+            SetActive(bannerPanel, true);
+        }
+
+        public void HideBanner() => SetActive(bannerPanel, false);
 
         // ------------------------------------------------------------- IMissionUi
 
@@ -459,6 +489,7 @@ namespace ShinyMinds.Missions.UI
             HideLine();
             HideChoices();
             HideEnding();
+            HideBanner();
             ShowContinuePrompt(string.Empty);
             SetObjective(string.Empty);
 

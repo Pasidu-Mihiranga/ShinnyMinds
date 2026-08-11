@@ -22,6 +22,16 @@ namespace ShinyMinds.Missions.EditorTools
         const string Folder = "Assets/GameData/Missions";
         const string AssetPath = Folder + "/Mission01_TheRoadHome.asset";
 
+        /// <summary>
+        /// Printed on every build. The mission is a generated asset, so a change here does
+        /// nothing at all until this menu item is re-run — and Unity runs menu items against the
+        /// assembly it has already compiled, so running it before a recompile finishes rebuilds
+        /// the PREVIOUS graph, which looks exactly like the change not working. If the Console
+        /// does not name the change you just made, run it again.
+        /// </summary>
+        const string BuildStamp =
+            "all five narrator stage-direction lines removed; no line uses the subtitle bar now";
+
         [MenuItem("ShinyMinds/Build Mission 01 (The Road Home)")]
         public static void Build()
         {
@@ -46,7 +56,8 @@ namespace ShinyMinds.Missions.EditorTools
 
             Selection.activeObject = mission;
             EditorGUIUtility.PingObject(mission);
-            Debug.Log($"Mission 01 built: {mission.nodes.Count} nodes, {mission.endings.Count} endings -> {AssetPath}", mission);
+            Debug.Log($"Mission 01 built: {mission.nodes.Count} nodes, {mission.endings.Count} " +
+                      $"endings — {BuildStamp} -> {AssetPath}", mission);
         }
 
         static void Populate(MissionData m)
@@ -132,7 +143,10 @@ namespace ShinyMinds.Missions.EditorTools
                     stars = 0,
                     completesMission = false,
                     allowRetry = true,
-                    allowContinue = false,
+                    // The city is open world, so every ending has to offer a way back out to it.
+                    // This one used to be retry-only, which trapped the player on the summary
+                    // screen: the lesson is made by the summary itself, not by refusing to leave.
+                    allowContinue = true,
                 },
                 new MissionEnding
                 {
@@ -212,6 +226,30 @@ namespace ShinyMinds.Missions.EditorTools
 
         // ------------------------------------------------- Scene 2: Someone Calls Her Name
 
+        /// <summary>
+        /// Every shot in the meeting sits this far from what it is aiming at, so the whole scene
+        /// is a set of angles on one orbit. The camera swings smoothly from one to the next at a
+        /// constant distance: the angle changes, the framing size never does, and nothing on
+        /// screen reads as a zoom. Wide / TwoShot / OverShoulder / CloseUp still pick different
+        /// *directions* and elevations — only the distance they would each have chosen is
+        /// overridden.
+        ///
+        /// 5.5 m clears the widest spread in the scene (he spawns about 6 m from her, which needs
+        /// 4.1 m to fit) with room to spare as he closes in.
+        ///
+        /// The consequence, and it is the price of no zoom: the two "close-ups" are no longer
+        /// close. Getting close IS moving the camera in. Raise or lower this one number to trade
+        /// intimacy against how much of the street stays in frame.
+        /// </summary>
+        const float OrbitRadius = 5.5f;
+
+        /// <summary>Puts a shot on the shared orbit. See <see cref="OrbitRadius"/>.</summary>
+        static FramedShotAction Orbit(FramedShotAction shot)
+        {
+            shot.fixedDistance = OrbitRadius;
+            return shot;
+        }
+
         static void BuildScene2(List<MissionNode> n)
         {
             n.Add(Cutscene("s2_stop", "s2_call",
@@ -222,14 +260,16 @@ namespace ShinyMinds.Missions.EditorTools
                 Teleport("stranger", "m_stranger_spawn"),
                 // Open wide. An open street reads as safe, which is the point — the
                 // danger here never looks like danger.
-                Framed(ShotType.Wide, 1.0f, null, "aisha", "stranger")));
+                Orbit(Framed(ShotType.Wide, 1.0f, null, "aisha", "stranger"))));
 
             n.Add(Line("s2_call", "stranger", "Hey! Aisha!", "s2_turn"));
 
             n.Add(Cutscene("s2_turn", "s2_confirm",
                 Parallel(Move("stranger", "m_stranger_call", faceActor: "aisha")),
                 Face("aisha", "stranger", 0.6f),
-                Framed(ShotType.TwoShot, 1.2f, "stranger", "aisha", "stranger")));
+                // Tracks him as he walks up. Tracking re-aims the lens and never moves it, so
+                // it is a rotation, not a dolly.
+                Orbit(Framed(ShotType.TwoShot, 1.2f, "stranger", "aisha", "stranger"))));
 
             n.Add(Line("s2_confirm", "stranger", "You are Aisha, right?", "s2_yes"));
             n.Add(Line("s2_yes", "aisha", "Yes...", "s2_think1"));
@@ -239,29 +279,29 @@ namespace ShinyMinds.Missions.EditorTools
             n.Add(Line("s2_thought_so", "stranger", "I thought so.", "s2_like_mother"));
             n.Add(Line("s2_like_mother", "stranger", "You look just like your mother.", "s2_closer"));
 
-            // He steps closer. Tighten and drop the camera: closer framing reads as
-            // pressure without anything overtly frightening happening on screen.
+            // He steps closer. Cut tighter and lower: closer framing reads as pressure without
+            // anything overtly frightening happening on screen. The slow push that used to run
+            // under the next lines is gone — that was the creeping zoom.
             n.Add(Cutscene("s2_closer", "s2_knows",
                 Move("stranger", "m_stranger_close", faceActor: "aisha"),
-                Framed(ShotType.OverShoulder, 0.9f, null, "aisha", "stranger", height: -0.1f),
-                Push(0.35f, 3.5f, shake: 0.012f)));      // runs on under the next lines
+                Orbit(Framed(ShotType.OverShoulder, 0.9f, null, "aisha", "stranger", height: -0.1f))));
 
             n.Add(Line("s2_knows", "stranger", "I know your mother, Lia.", "s2_work"));
             n.Add(Line("s2_work", "stranger", "We work together.", "s2_surprised"));
 
             n.Add(Cutscene("s2_surprised", "s2_offer",
-                Framed(ShotType.CloseUp, 0.7f, null, "aisha"),
+                Orbit(Framed(ShotType.CloseUp, 0.7f, null, "aisha")),
                 Emote("aisha", "Fear", 1.0f)));
 
             n.Add(Line("s2_offer", "stranger",
                 "She asked me to help you\nget home today.", "s2_hesitate"));
 
-            // Hold on her face slightly longer than is comfortable. The pause before the
-            // choice is where the lesson actually lands.
+            // Hold on her face slightly longer than is comfortable. The pause before the choice
+            // is where the lesson actually lands — carried by the held angle and her animation
+            // now that the push that used to creep in under her thought is gone.
             n.Add(Cutscene("s2_hesitate", "s2_think2",
                 Emote("aisha", "Sad", 0.8f),
-                Framed(ShotType.CloseUp, 1.0f, "aisha", "aisha", angle: 22f),
-                Push(0.25f, 4f)));                       // holds under her thought
+                Orbit(Framed(ShotType.CloseUp, 1.0f, "aisha", "aisha", angle: 22f))));
 
             n.Add(Thought("s2_think2", "aisha", "I don't know this person.", "s2_choice"));
 
@@ -287,10 +327,15 @@ namespace ShinyMinds.Missions.EditorTools
             n.Add(Line("a1_okay", "aisha", "Okay.", "a2_good"));
             n.Add(Line("a2_good", "stranger", "Good choice.", "a3_walkoff"));
 
+            // BOTH walks are parallel, and they have to be. RunActions joins every pending
+            // parallel coroutine before it starts a sequential one, so with only his move marked
+            // parallel, hers waited for him to finish the entire 33 m walk first: he strolled off
+            // alone while she stood at the kerb, which reads as her refusing to go. The Fade is
+            // sequential, so it still joins both and only starts once they have arrived.
             n.Add(Cutscene("a3_walkoff", "a4_end",
                 Shot("m_cam_end_a", 1.0f),
                 Parallel(Move("stranger", "m_patha_exit_stranger")),
-                Move("aisha", "m_patha_exit"),
+                Parallel(Move("aisha", "m_patha_exit")),
                 Fade(true, 2.0f)));
 
             n.Add(Ending("a4_end", "ending_unsafe"));
@@ -320,13 +365,11 @@ namespace ShinyMinds.Missions.EditorTools
                 Framed(ShotType.TwoShot, 0f, null, "aisha", "mother"),
                 Fade(false, 1.0f)));
 
-            n.Add(Line("b7_youre_home", "mother", "You're home!", "b8_tells"));
-
-            n.Add(Line("b8_tells", "narrator",
-                "Aisha tells her mother\nwhat happened.", "b8_serious"));
-
-            n.Add(Line("b8_serious", "narrator",
-                "Her mother's expression\nbecomes serious.", "b9_safer"));
+            // Straight from "You're home!" to what her mother makes of it. The two narrator lines
+            // that sat here — "Aisha tells her mother what happened." and "Her mother's expression
+            // becomes serious." — were removed by request: they described a conversation the
+            // player then has anyway, in the dark subtitle bar over the top of both characters.
+            n.Add(Line("b7_youre_home", "mother", "You're home!", "b9_safer"));
 
             n.Add(Line("b9_safer", "mother", "You made a safer choice by walking away.", "b10_better"));
             n.Add(Line("b10_better", "mother", "But there was an even better choice.", "b11_therewas"));
@@ -339,15 +382,14 @@ namespace ShinyMinds.Missions.EditorTools
 
         static void BuildPathC(List<MissionNode> n)
         {
-            n.Add(Cutscene("c1_look", "c2_sees",
+            // The wide shot turning her towards the teacher is the beat now: the two narrator lines
+            // that used to sit here ("Aisha decides not to handle this alone." / "She looks around,
+            // and sees the teacher of her class.") were removed by request. NOTE that the second
+            // was doing work — it is what told the player who she is walking to. If her walk in
+            // c3_walk reads as unmotivated, that line is what to put back.
+            n.Add(Cutscene("c1_look", "c3_walk",
                 Framed(ShotType.Wide, 0.8f, null, "aisha", "teacher"),
                 Face("aisha", "teacher", 0.6f)));
-
-            n.Add(Line("c2_sees", "narrator",
-                "Aisha decides not to handle\nthis alone.", "c2_sees2"));
-
-            n.Add(Line("c2_sees2", "narrator",
-                "She looks around, and sees\nthe teacher of her class.", "c3_walk"));
 
             n.Add(Cutscene("c3_walk", "c4_ask",
                 Parallel(Framed(ShotType.TwoShot, 1.4f, "aisha", "aisha", "teacher")),
@@ -364,12 +406,13 @@ namespace ShinyMinds.Missions.EditorTools
 
             n.Add(Line("c7_nevermind", "stranger", "Never mind.", "c8_flee"));
 
-            n.Add(Cutscene("c8_flee", "c9_calls",
+            // NOTE the narrator line removed from between these two was "The teacher stays with
+            // Aisha and calls her mother." — it is the only thing that explained why her mother
+            // then turns up. Without it the arrival in c10_arrive is unannounced. Put it back if
+            // that reads as a jump.
+            n.Add(Cutscene("c8_flee", "c10_arrive",
                 Move("stranger", "m_stranger_flee", run: true),
                 SetActive("stranger", false)));
-
-            n.Add(Line("c9_calls", "narrator",
-                "The teacher stays with Aisha\nand calls her mother.", "c10_arrive"));
 
             n.Add(Cutscene("c10_arrive", "c11_right_thing",
                 Fade(true, 0.8f, hold: 0.4f),

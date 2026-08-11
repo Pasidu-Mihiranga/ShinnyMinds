@@ -58,6 +58,9 @@ namespace ShinyMinds.Missions.Runtime
         [Header("Optional")]
         [Tooltip("Assign for GIRL 1. A CharacterController ignores direct transform writes.")]
         [SerializeField] CharacterController characterController;
+        [Tooltip("Assign for GIRL 1. Found automatically on this object if left empty. When " +
+                 "present, ITS speeds are used and the ones above are ignored — see SpeedFor.")]
+        [SerializeField] PlayerController playerController;
         [Tooltip("Downward push applied through the CharacterController so it stays grounded.")]
         [SerializeField] float ccGravity = 4f;
 
@@ -97,6 +100,47 @@ namespace ShinyMinds.Missions.Runtime
         {
             animator = GetComponent<Animator>();
             characterController = GetComponent<CharacterController>();
+            playerController = GetComponent<PlayerController>();
+        }
+
+        void Awake()
+        {
+            // Found here as well as in Reset, so an ActorMover added to the player before this
+            // field existed still picks it up rather than silently sprinting.
+            if (playerController == null)
+                playerController = GetComponent<PlayerController>();
+        }
+
+        /// <summary>
+        /// Metres per second in world space for this move.
+        ///
+        /// The speeds above are authored for a roughly 1-unit rig and multiplied by the actor's
+        /// scale, so a bigger actor's longer stride matches its travel. That is right for the
+        /// mission-only actors — but the player is the one actor whose speed is already decided
+        /// elsewhere. PlayerController moves her at its own walk/run/backward speeds in world
+        /// metres, ignoring her scale entirely.
+        ///
+        /// GIRL 1 is scale 5, so scaling on top of that had the same body cross the ground at
+        /// 17.5 m/s in a cutscene against 6 m/s under the player's own thumb — Path B's 20 m walk
+        /// home was over in about a second. When a PlayerController is present its figures win,
+        /// unscaled, and a mission moves her at exactly the pace the player has been watching all
+        /// game.
+        ///
+        /// The trade is visible if you look for it: at 6 m/s a scale-5 rig's feet slide, because
+        /// the stride wants 17.5. They slide identically under player control, which is the point
+        /// — one character, one speed.
+        /// </summary>
+        float SpeedFor(bool run, bool backwards)
+        {
+            if (playerController != null)
+            {
+                return backwards ? playerController.backwardSpeed
+                     : run ? playerController.runSpeed
+                     : playerController.walkSpeed;
+            }
+
+            float authored = backwards ? backSpeed : (run ? runSpeed : walkSpeed);
+            return authored * ScaleFactor;
         }
 
         /// <summary>
@@ -124,8 +168,7 @@ namespace ShinyMinds.Missions.Runtime
             warnedNoGround = false;
             warnedClimb = false;
 
-            float baseSpeed = backwards ? backSpeed : (run ? runSpeed : walkSpeed);
-            float speed = baseSpeed * ScaleFactor;
+            float speed = SpeedFor(run, backwards);
 
             SetAnim(run ? runAnimValue : walkAnimValue, backwards);
             BeginRootMotion();

@@ -28,7 +28,7 @@ namespace ShinyMinds.Missions.EditorTools
         /// compiled it yet: give it focus, wait for the spinner, and run it again.
         /// </summary>
         const string BuildStamp =
-            "24px rounded corners on every balloon, panel and button";
+            "paper summary screen with stars, attempt/best progress and a primary Try Again";
 
         static readonly Color Ink = new Color(0.96f, 0.97f, 1.00f);
         static readonly Color Panel = new Color(0.07f, 0.09f, 0.14f, 0.94f);
@@ -49,6 +49,33 @@ namespace ShinyMinds.Missions.EditorTools
         static readonly Color BalloonPaper = new Color(1f, 1f, 1f, 1f);
         static readonly Color BalloonInk = new Color(0.11f, 0.13f, 0.17f);
         static readonly Color BalloonOutline = new Color(0f, 0f, 0f, 1f);
+
+        // The choice panel is light, because it is the one screen the player has to READ and
+        // decide on, and every other thing they read in this game — the speech balloons, the
+        // memory bubble — is paper with dark ink. A navy plate in the middle of that was the
+        // odd one out.
+        //
+        // A note on why it looked worse than it was authored: Button's ColorTint transition
+        // OVERWRITES the Image's colour with colors.normalColor, and normalColor was never set,
+        // so it defaulted to white. The buttons rendered white with the near-white HUD ink on
+        // them — invisible labels. Every state below is set explicitly for that reason.
+        static readonly Color PaperPanel = new Color(1.00f, 1.00f, 1.00f, 0.97f);
+        static readonly Color PaperButton = new Color(0.96f, 0.97f, 0.99f, 1.00f);
+        static readonly Color PaperButtonHover = new Color(0.85f, 0.91f, 0.99f, 1.00f);
+        static readonly Color PaperButtonPressed = new Color(0.74f, 0.83f, 0.95f, 1.00f);
+        static readonly Color PaperButtonOff = new Color(0.92f, 0.92f, 0.93f, 0.70f);
+        static readonly Color PaperAccent = new Color(0.09f, 0.42f, 0.82f);
+        static readonly Color PaperAccentHover = new Color(0.14f, 0.50f, 0.92f);
+        static readonly Color PaperAccentPressed = new Color(0.06f, 0.33f, 0.66f);
+
+        // Summary screen.
+        static readonly Color Scrim = new Color(0.02f, 0.03f, 0.05f, 0.55f);
+        static readonly Color StarEarned = new Color(0.98f, 0.74f, 0.16f);
+        static readonly Color StarEmpty = new Color(0.85f, 0.86f, 0.89f);
+        static readonly Color HairRule = new Color(0.10f, 0.12f, 0.16f, 0.15f);
+        static readonly Color MutedInk = new Color(0.40f, 0.44f, 0.52f);
+
+        const string StarSpritePath = "Assets/Art/UI/UI_Star.png";
 
         [MenuItem("ShinyMinds/Setup/1. Build Mission UI Prefab")]
         public static GameObject Build()
@@ -261,14 +288,18 @@ namespace ShinyMinds.Missions.EditorTools
             WireList(memoryAnchor, "dots", dot0, dot1, dot2);
 
             // ---------------------------------------------------------- choices
+            // Paper, with the same black keyline as a speech balloon, so the decision belongs to
+            // the same storybook as everything else the player reads.
             GameObject choicePanel = Rect("ChoicePanel", root.transform);
             Anchor(choicePanel, new Vector2(0.5f, 0.5f), new Vector2(1100f, 460f), Vector2.zero);
-            AddRounded(choicePanel, Panel);
+            AddRounded(choicePanel, PaperPanel);
+            AddOutline(choicePanel, 3f);
 
             GameObject prompt = Rect("ChoicePrompt", choicePanel.transform);
             Anchor(prompt, new Vector2(0.5f, 1f), new Vector2(1000f, 60f), new Vector2(0f, -28f));
             TextMeshProUGUI promptTmp = AddText(prompt, "What should Aisha do?", 38f,
-                                                TextAlignmentOptions.Center, Ink, FontStyles.Bold);
+                                                TextAlignmentOptions.Center, BalloonInk,
+                                                FontStyles.Bold);
 
             GameObject choices = Rect("Choices", choicePanel.transform);
             RectTransform choicesRt = Stretch(choices);
@@ -287,52 +318,133 @@ namespace ShinyMinds.Missions.EditorTools
             for (int i = 0; i < 3; i++)
                 buttons[i] = BuildChoiceButton(choices.transform, i);
 
-            // ---------------------------------------------------------- ending
+            // ---------------------------------------------------------- mission offer
+            // Top-centre: clear of the objective HUD on the left, and well clear of the touch
+            // controls and the dialogue bar at the bottom. Paper, like everything else the player
+            // reads. It never takes input — MissionTrigger reads the accept press itself.
+            GameObject bannerPanel = Rect("MissionBanner", root.transform);
+            Anchor(bannerPanel, new Vector2(0.5f, 1f), new Vector2(760f, 152f), new Vector2(0f, -40f));
+            AddRounded(bannerPanel, PaperPanel);
+            AddOutline(bannerPanel, 3f);
+
+            GameObject bannerTitle = Rect("Title", bannerPanel.transform);
+            Anchor(bannerTitle, new Vector2(0.5f, 1f), new Vector2(700f, 46f), new Vector2(0f, -18f));
+            TextMeshProUGUI bannerTitleTmp = AddText(bannerTitle, "The Road Home", 34f,
+                                                     TextAlignmentOptions.Center, PaperAccent,
+                                                     FontStyles.Bold);
+
+            GameObject bannerObjective = Rect("Objective", bannerPanel.transform);
+            Anchor(bannerObjective, new Vector2(0.5f, 1f), new Vector2(700f, 36f), new Vector2(0f, -68f));
+            TextMeshProUGUI bannerObjTmp = AddText(bannerObjective, "Walk home from school.", 26f,
+                                                   TextAlignmentOptions.Center, BalloonInk);
+
+            GameObject bannerPrompt = Rect("Prompt", bannerPanel.transform);
+            Anchor(bannerPrompt, new Vector2(0.5f, 0f), new Vector2(700f, 32f), new Vector2(0f, 16f));
+            TextMeshProUGUI bannerPromptTmp = AddText(bannerPrompt, "Press E to begin", 23f,
+                                                      TextAlignmentOptions.Center, MutedInk);
+
+            // ------------------------------------------------- ending / summary screen
+            // The root is full-screen so the scrim can cover the world; the paper card is a
+            // child of it, centred. MissionEndingCard.root points at the whole thing, so hiding
+            // it takes the scrim with it.
             GameObject endingCardGo = Rect("EndingCard", root.transform);
-            Anchor(endingCardGo, new Vector2(0.5f, 0.5f), new Vector2(1100f, 620f), Vector2.zero);
+            Stretch(endingCardGo);
             var endingCard = endingCardGo.AddComponent<MissionEndingCard>();
 
-            GameObject endFrame = Rect("Frame", endingCardGo.transform);
-            Stretch(endFrame);
-            AddRounded(endFrame, Panel);
+            // Raycast target MUST be off, like FadeOverlay: a full-screen one swallows every
+            // click and the card's own buttons stop responding.
+            GameObject scrim = Rect("Scrim", endingCardGo.transform);
+            Stretch(scrim);
+            AddImage(scrim, Scrim, false);
+
+            GameObject endFrame = Rect("Card", endingCardGo.transform);
+            Anchor(endFrame, new Vector2(0.5f, 0.5f), new Vector2(1040f, 700f), Vector2.zero);
+            AddRounded(endFrame, PaperPanel);
+            AddOutline(endFrame, 3f);
 
             GameObject badge = Rect("Badge", endFrame.transform);
-            Anchor(badge, new Vector2(0.5f, 1f), new Vector2(120f, 120f), new Vector2(0f, -40f));
+            Anchor(badge, new Vector2(0.5f, 1f), new Vector2(112f, 112f), new Vector2(0f, -44f));
             // A Sprite, never an emoji glyph - TMP's default atlas renders those as boxes.
             Image badgeImg = AddImage(badge, Color.white, false);
             badgeImg.enabled = false;
             badgeImg.preserveAspect = true;
 
             GameObject endTitle = Rect("EndingTitle", endFrame.transform);
-            Anchor(endTitle, new Vector2(0.5f, 1f), new Vector2(1000f, 70f), new Vector2(0f, -180f));
+            Anchor(endTitle, new Vector2(0.5f, 1f), new Vector2(940f, 62f), new Vector2(0f, -170f));
             TextMeshProUGUI endTitleTmp = AddText(endTitle, "Ending", 46f, TextAlignmentOptions.Center,
-                                                  Ink, FontStyles.Bold);
+                                                  BalloonInk, FontStyles.Bold);
+
+            // The score, as art rather than ★ characters. MissionEndingCard tints the earned ones
+            // gold and leaves the rest grey, so three Images cover every result.
+            GameObject starRow = Rect("Stars", endFrame.transform);
+            Anchor(starRow, new Vector2(0.5f, 1f), new Vector2(320f, 60f), new Vector2(0f, -240f));
+            var starLayout = starRow.AddComponent<HorizontalLayoutGroup>();
+            starLayout.spacing = 16f;
+            starLayout.childForceExpandWidth = false;
+            starLayout.childForceExpandHeight = false;
+            starLayout.childControlWidth = false;
+            starLayout.childControlHeight = false;
+            starLayout.childAlignment = TextAnchor.MiddleCenter;
+
+            Image[] starImages =
+            {
+                BuildStar(starRow.transform),
+                BuildStar(starRow.transform),
+                BuildStar(starRow.transform),
+            };
+
+            GameObject rule = Rect("Rule", endFrame.transform);
+            Anchor(rule, new Vector2(0.5f, 1f), new Vector2(860f, 2f), new Vector2(0f, -308f));
+            AddImage(rule, HairRule, false);
 
             GameObject lesson = Rect("LessonText", endFrame.transform);
-            RectTransform lessonRt = Stretch(lesson);
-            lessonRt.offsetMin = new Vector2(70f, 140f);
-            lessonRt.offsetMax = new Vector2(-70f, -270f);
-            TextMeshProUGUI lessonTmp = AddText(lesson, "Lesson", 30f, TextAlignmentOptions.Top, Ink);
+            Anchor(lesson, new Vector2(0.5f, 1f), new Vector2(860f, 230f), new Vector2(0f, -336f));
+            TextMeshProUGUI lessonTmp = AddText(lesson, "Lesson", 30f, TextAlignmentOptions.Top,
+                                                BalloonInk);
+
+            GameObject rule2 = Rect("Rule2", endFrame.transform);
+            Anchor(rule2, new Vector2(0.5f, 0f), new Vector2(860f, 2f), new Vector2(0f, 188f));
+            AddImage(rule2, HairRule, false);
+
+            // Progress across attempts, which is the part that makes this a summary rather than
+            // just a result: how many tries, and the best outcome reached so far.
+            GameObject attempt = Rect("AttemptText", endFrame.transform);
+            Anchor(attempt, new Vector2(0f, 0f), new Vector2(420f, 36f), new Vector2(90f, 142f));
+            TextMeshProUGUI attemptTmp = AddText(attempt, "Attempt 1", 24f,
+                                                 TextAlignmentOptions.Left, MutedInk);
+
+            GameObject best = Rect("BestText", endFrame.transform);
+            Anchor(best, new Vector2(1f, 0f), new Vector2(420f, 36f), new Vector2(-90f, 142f));
+            TextMeshProUGUI bestTmp = AddText(best, "Best so far 0 of 3", 24f,
+                                              TextAlignmentOptions.Right, MutedInk);
 
             GameObject btnRow = Rect("Buttons", endFrame.transform);
-            Anchor(btnRow, new Vector2(0.5f, 0f), new Vector2(760f, 84f), new Vector2(0f, 36f));
+            Anchor(btnRow, new Vector2(0.5f, 0f), new Vector2(720f, 88f), new Vector2(0f, 42f));
             var row = btnRow.AddComponent<HorizontalLayoutGroup>();
-            row.spacing = 30f;
+            row.spacing = 28f;
             row.childForceExpandWidth = true;
             row.childControlWidth = true;
             row.childControlHeight = true;
             row.childAlignment = TextAnchor.MiddleCenter;
 
-            Button retry = BuildButton(btnRow.transform, "RetryButton", "Try Again");
-            Button cont2 = BuildButton(btnRow.transform, "ContinueButton", "Continue");
+            // Try Again is the primary action — it is the whole point of a safety lesson the
+            // player got wrong — so it carries the accent and Continue stays quiet paper.
+            Button retry = BuildButton(btnRow.transform, "RetryButton", "Try Again", primary: true);
+            Button cont2 = BuildButton(btnRow.transform, "ContinueButton", "Continue", primary: false);
 
             Wire(endingCard,
                 ("root", endingCardGo),
                 ("badge", badgeImg),
                 ("title", endTitleTmp),
                 ("lesson", lessonTmp),
+                ("attemptText", attemptTmp),
+                ("bestText", bestTmp),
                 ("retryButton", retry),
-                ("continueButton", cont2));
+                ("continueButton", cont2),
+                ("starEarned", StarEarned),
+                ("starEmpty", StarEmpty));
+
+            WireList(endingCard, "stars", starImages[0], starImages[1], starImages[2]);
 
             // ---------------------------------------------------------- the view
             Wire(view,
@@ -358,6 +470,10 @@ namespace ShinyMinds.Missions.EditorTools
                 ("memoryFadeSeconds", 0.45f),
                 ("choicePanel", choicePanel),
                 ("choicePrompt", promptTmp),
+                ("bannerPanel", bannerPanel),
+                ("bannerTitle", bannerTitleTmp),
+                ("bannerObjective", bannerObjTmp),
+                ("bannerPrompt", bannerPromptTmp),
                 ("endingCard", endingCard),
                 ("objectiveHud", objHud),
                 ("fadeOverlay", fadeImg),
@@ -389,6 +505,7 @@ namespace ShinyMinds.Missions.EditorTools
             worldLayer.SetActive(false);
             worldCont.SetActive(false);
             choicePanel.SetActive(false);
+            bannerPanel.SetActive(false);
             endingCardGo.SetActive(false);
             fade.SetActive(false);
 
@@ -691,6 +808,122 @@ namespace ShinyMinds.Missions.EditorTools
             return ellipseSprite;
         }
 
+        /// <summary>
+        /// A five-pointed star for the score row.
+        ///
+        /// Generated, because the obvious alternative is the ★ character and TMP's default
+        /// LiberationSans atlas has no glyph for it — it renders as an empty box. Same reason
+        /// MissionEnding.badge insists on a Sprite. Drawn as a ten-vertex polygon with
+        /// point-in-polygon supersampling, which is exact and needs no SDF trickery.
+        /// </summary>
+        static Sprite starSprite;
+
+        static Sprite EnsureStarSprite()
+        {
+            if (starSprite != null) return starSprite;
+
+            if (!File.Exists(StarSpritePath))
+                WriteStarPng();
+
+            var importer = AssetImporter.GetAtPath(StarSpritePath) as TextureImporter;
+            if (importer == null)
+            {
+                AssetDatabase.ImportAsset(StarSpritePath, ImportAssetOptions.ForceSynchronousImport);
+                importer = AssetImporter.GetAtPath(StarSpritePath) as TextureImporter;
+            }
+
+            if (importer != null &&
+                (importer.textureType != TextureImporterType.Sprite ||
+                 importer.spriteImportMode != SpriteImportMode.Single ||
+                 !importer.alphaIsTransparency))
+            {
+                importer.textureType = TextureImporterType.Sprite;
+                importer.spriteImportMode = SpriteImportMode.Single;
+                importer.alphaIsTransparency = true;
+                importer.mipmapEnabled = false;
+                importer.wrapMode = TextureWrapMode.Clamp;
+                importer.SaveAndReimport();
+            }
+
+            starSprite = AssetDatabase.LoadAssetAtPath<Sprite>(StarSpritePath);
+
+            if (starSprite == null)
+                Debug.LogError($"{StarSpritePath} did not import as a Sprite. The score row will " +
+                               "show squares. Texture Type = Sprite, Sprite Mode = Single.");
+
+            return starSprite;
+        }
+
+        static void WriteStarPng()
+        {
+            const int size = 128;
+            const int ss = 4;                 // supersamples per axis
+            const float half = size * 0.5f;
+
+            // Ten vertices, alternating outer and inner, first point straight up. 0.40 is a
+            // little fuller than the geometric 0.382 of a pentagram and reads better small.
+            var poly = new Vector2[10];
+            for (int i = 0; i < poly.Length; i++)
+            {
+                float angle = (90f + i * 36f) * Mathf.Deg2Rad;
+                float radius = half * (i % 2 == 0 ? 0.94f : 0.40f);
+
+                poly[i] = new Vector2(half + Mathf.Cos(angle) * radius,
+                                      half + Mathf.Sin(angle) * radius);
+            }
+
+            var pixels = new Color32[size * size];
+
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    int hits = 0;
+
+                    for (int sy = 0; sy < ss; sy++)
+                    {
+                        for (int sx = 0; sx < ss; sx++)
+                        {
+                            var p = new Vector2(x + (sx + 0.5f) / ss, y + (sy + 0.5f) / ss);
+                            if (InPolygon(p, poly)) hits++;
+                        }
+                    }
+
+                    byte a = (byte)(255 * hits / (ss * ss));
+                    pixels[y * size + x] = new Color32(255, 255, 255, a);
+                }
+            }
+
+            var tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
+            tex.SetPixels32(pixels);
+            tex.Apply();
+
+            EnsureFolder(StarSpritePath);
+            File.WriteAllBytes(StarSpritePath, tex.EncodeToPNG());
+            Object.DestroyImmediate(tex);
+
+            AssetDatabase.ImportAsset(StarSpritePath, ImportAssetOptions.ForceSynchronousImport);
+            Debug.Log($"Generated {StarSpritePath}");
+        }
+
+        /// <summary>Even-odd crossing test. The star is a simple polygon, so this is exact.</summary>
+        static bool InPolygon(Vector2 p, Vector2[] poly)
+        {
+            bool inside = false;
+
+            for (int i = 0, j = poly.Length - 1; i < poly.Length; j = i++)
+            {
+                if ((poly[i].y > p.y) != (poly[j].y > p.y) &&
+                    p.x < (poly[j].x - poly[i].x) * (p.y - poly[i].y) /
+                          (poly[j].y - poly[i].y) + poly[i].x)
+                {
+                    inside = !inside;
+                }
+            }
+
+            return inside;
+        }
+
         static void WriteEllipsePng()
         {
             const int size = 512;
@@ -887,6 +1120,24 @@ namespace ShinyMinds.Missions.EditorTools
             return bubble;
         }
 
+        /// <summary>One star in the score row. Tinted at runtime: gold if earned, grey if not.</summary>
+        static Image BuildStar(Transform parent)
+        {
+            GameObject go = Rect("Star", parent);
+            RT(go).sizeDelta = new Vector2(54f, 54f);
+
+            var le = go.AddComponent<LayoutElement>();
+            le.preferredWidth = 54f;
+            le.preferredHeight = 54f;
+
+            Image img = AddImage(go, StarEarned, false);
+            img.sprite = EnsureStarSprite();
+            img.type = Image.Type.Simple;
+            img.preserveAspect = true;
+
+            return img;
+        }
+
         static MissionChoiceButton BuildChoiceButton(Transform parent, int index)
         {
             GameObject go = Rect($"ChoiceButton_{index}", parent);
@@ -896,27 +1147,35 @@ namespace ShinyMinds.Missions.EditorTools
             le.minHeight = 86f;
             le.preferredHeight = 86f;
 
-            Image bg = AddRounded(go, ButtonIdle, true);    // raycast ON - it is clickable
+            Image bg = AddRounded(go, PaperButton, true);   // raycast ON - it is clickable
+            AddOutline(go, 2f);
 
             var button = go.AddComponent<Button>();
             button.targetGraphic = bg;
 
+            // normalColor FIRST and always. ColorTint replaces the Image's colour with it, so
+            // leaving it at its white default is what made these render as blank white slabs.
             var colors = button.colors;
-            colors.highlightedColor = new Color(0.26f, 0.42f, 0.62f);
-            colors.pressedColor = new Color(0.20f, 0.34f, 0.52f);
-            colors.selectedColor = colors.highlightedColor;
+            colors.normalColor = PaperButton;
+            colors.highlightedColor = PaperButtonHover;
+            colors.pressedColor = PaperButtonPressed;
+            colors.selectedColor = PaperButtonHover;
+            colors.disabledColor = PaperButtonOff;
+            colors.fadeDuration = 0.08f;
             button.colors = colors;
 
             GameObject letter = Rect("Letter", go.transform);
             Anchor(letter, new Vector2(0f, 0.5f), new Vector2(70f, 70f), new Vector2(24f, 0f));
             TextMeshProUGUI letterTmp = AddText(letter, ((char)('A' + index)).ToString(), 34f,
-                                                TextAlignmentOptions.Center, Accent, FontStyles.Bold);
+                                                TextAlignmentOptions.Center, PaperAccent,
+                                                FontStyles.Bold);
 
             GameObject label = Rect("Label", go.transform);
             RectTransform labelRt = Stretch(label);
             labelRt.offsetMin = new Vector2(104f, 0f);
             labelRt.offsetMax = new Vector2(-28f, 0f);
-            TextMeshProUGUI labelTmp = AddText(label, "Choice", 32f, TextAlignmentOptions.Left, Ink);
+            TextMeshProUGUI labelTmp = AddText(label, "Choice", 32f, TextAlignmentOptions.Left,
+                                               BalloonInk);
 
             var mcb = go.AddComponent<MissionChoiceButton>();
             Wire(mcb, ("button", button), ("label", labelTmp), ("letter", letterTmp));
@@ -924,22 +1183,33 @@ namespace ShinyMinds.Missions.EditorTools
             return mcb;
         }
 
-        static Button BuildButton(Transform parent, string name, string text)
+        /// <summary>
+        /// A card button. Primary carries the accent with a white label; secondary is quiet
+        /// paper with dark ink. Both set normalColor explicitly — ColorTint overwrites the
+        /// Image's colour with it, and left at its white default the label vanishes.
+        /// </summary>
+        static Button BuildButton(Transform parent, string name, string text, bool primary)
         {
             GameObject go = Rect(name, parent);
-            Image bg = AddRounded(go, ButtonIdle, true);
+            Image bg = AddRounded(go, primary ? PaperAccent : PaperButton, true);
+            AddOutline(go, 2f);
 
             var button = go.AddComponent<Button>();
             button.targetGraphic = bg;
 
             var colors = button.colors;
-            colors.highlightedColor = new Color(0.26f, 0.42f, 0.62f);
-            colors.pressedColor = new Color(0.20f, 0.34f, 0.52f);
+            colors.normalColor = primary ? PaperAccent : PaperButton;
+            colors.highlightedColor = primary ? PaperAccentHover : PaperButtonHover;
+            colors.pressedColor = primary ? PaperAccentPressed : PaperButtonPressed;
+            colors.selectedColor = colors.highlightedColor;
+            colors.disabledColor = PaperButtonOff;
+            colors.fadeDuration = 0.08f;
             button.colors = colors;
 
             GameObject label = Rect("Label", go.transform);
             Stretch(label);
-            AddText(label, text, 30f, TextAlignmentOptions.Center, Ink, FontStyles.Bold);
+            AddText(label, text, 30f, TextAlignmentOptions.Center,
+                    primary ? Color.white : BalloonInk, FontStyles.Bold);
 
             return button;
         }

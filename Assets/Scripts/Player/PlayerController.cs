@@ -12,6 +12,11 @@ public class PlayerController : MonoBehaviour
     public float backwardSpeed = 2f;
     public float turnSpeed = 120f;
 
+    // How fast she swings round to face a new stick direction. Much faster than turnSpeed,
+    // which is the rate she pivots on the spot for the keyboard: a thumb flicked to a new
+    // direction should not feel like a three-point turn.
+    public float faceTurnSpeed = 540f;
+
     // GRAVITY
     public float gravity = -20f;
     private float verticalVelocity = 0f;
@@ -156,6 +161,28 @@ public class PlayerController : MonoBehaviour
     }
 
     // =========================
+    // CAMERA HEADING
+    // =========================
+    /// <summary>
+    /// The camera's heading flattened onto the ground, which is the frame the stick's four
+    /// directions are read in. Falls back to her own facing when there is no main camera — a
+    /// mission cutscene disables it — or when the camera is looking straight down and has no
+    /// heading left to give.
+    /// </summary>
+    private Vector3 CameraForward()
+    {
+        Camera cam = Camera.main;
+
+        Vector3 forward = cam != null ? cam.transform.forward : transform.forward;
+        forward.y = 0f;
+
+        if (forward.sqrMagnitude < 0.001f)
+            forward = transform.forward;
+
+        return forward.normalized;
+    }
+
+    // =========================
     // UPDATE LOOP
     // =========================
     void Update()
@@ -180,55 +207,76 @@ public class PlayerController : MonoBehaviour
     // -----------------------------
     // Mobile Input
     // -----------------------------
-    // Whichever source is pushed further wins, so a resting stick can never cancel the
-    // keyboard and a held key can never pin the stick. MobileInput.JumpTapped is already
-    // a single-frame edge, matching GetKeyDown.
-    if (Mathf.Abs(MobileInput.AxisH) > Mathf.Abs(horizontalInput))
-        horizontalInput = MobileInput.AxisH;
-
-    if (Mathf.Abs(MobileInput.AxisV) > Mathf.Abs(verticalInput))
-        verticalInput = MobileInput.AxisV;
-
+    // Run and Jump merge with the keys either way. MobileInput.JumpTapped is already a
+    // single-frame edge, matching GetKeyDown.
     run = run || MobileInput.RunHeld;
     jump = jump || MobileInput.JumpTapped;
 
-    // -----------------------------
-    // Turn Left / Right
-    // -----------------------------
-    // Rotation scales with how far the stick is pushed. The keyboard still reads +/-1
-    // from GetAxisRaw, so its turn rate is unchanged.
-    if (Mathf.Abs(horizontalInput) > 0.2f)
-    {
-        turningLeft = horizontalInput < 0f;
-        turningRight = horizontalInput > 0f;
+    Vector2 stick = new Vector2(MobileInput.AxisH, MobileInput.AxisV);
 
-        transform.Rotate(0, turnSpeed * horizontalInput * Time.deltaTime, 0);
-    }
+    // Squared against 0.2 squared, so the stick crosses into "driving" at the same push the
+    // keys below use.
+    bool stickDriving = stick.sqrMagnitude > 0.04f;
 
-    // -----------------------------
-    // Move Forward
-    // -----------------------------
-    if (verticalInput > 0.2f)
+    if (stickDriving)
     {
-        if (run)
+        // -----------------------------
+        // Stick: four directions, and none of them is "turn the camera"
+        // -----------------------------
+        // Read against the camera, so pushing away from yourself always walks away from the
+        // camera however the look gesture has swung it, and she turns to face the direction
+        // she is walking. Pulling down therefore walks her towards the camera facing it,
+        // rather than reversing — she is never walking backwards, so there is no reverse
+        // shuffle to animate.
+        //
+        // Nothing here rotates the camera rig. That belongs to the look gesture alone; see
+        // the note in CameraController about why the stick is no longer counted as movement
+        // there either.
+        Vector3 forward = CameraForward();
+        Vector3 right = Vector3.Cross(Vector3.up, forward);
+
+        Vector3 direction = forward * stick.y + right * stick.x;
+
+        if (direction.sqrMagnitude > 0.001f)
         {
-            speed = 6f;
-            horizontalMove = transform.forward * runSpeed;
-        }
-        else
-        {
-            speed = 2f;
-            horizontalMove = transform.forward * walkSpeed;
+            direction.Normalize();
+
+            transform.rotation = Quaternion.RotateTowards(
+                transform.rotation,
+                Quaternion.LookRotation(direction, Vector3.up),
+                faceTurnSpeed * Time.deltaTime);
+
+            // Full speed past the dead zone rather than scaling with the push: the animator
+            // has a walk clip and a run clip, and moving her at half speed under a walk clip
+            // slides her feet across the pavement.
+            speed = run ? 6f : 2f;
+            horizontalMove = direction * (run ? runSpeed : walkSpeed);
         }
     }
-
-    // -----------------------------
-    // Move Backward
-    // -----------------------------
-    if (verticalInput < -0.2f)
+    else
     {
-        movingBackward = true;
-        horizontalMove = -transform.forward * backwardSpeed;
+        // -----------------------------
+        // Keyboard: A/D pivot her on the spot, W/S walk her along her own facing
+        // -----------------------------
+        if (Mathf.Abs(horizontalInput) > 0.2f)
+        {
+            turningLeft = horizontalInput < 0f;
+            turningRight = horizontalInput > 0f;
+
+            transform.Rotate(0, turnSpeed * horizontalInput * Time.deltaTime, 0);
+        }
+
+        if (verticalInput > 0.2f)
+        {
+            speed = run ? 6f : 2f;
+            horizontalMove = transform.forward * (run ? runSpeed : walkSpeed);
+        }
+
+        if (verticalInput < -0.2f)
+        {
+            movingBackward = true;
+            horizontalMove = -transform.forward * backwardSpeed;
+        }
     }
 
     // -----------------------------

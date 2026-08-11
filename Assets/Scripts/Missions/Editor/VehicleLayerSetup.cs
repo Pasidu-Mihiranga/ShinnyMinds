@@ -58,6 +58,11 @@ namespace ShinyMinds.Missions.EditorTools
 
             int movers = ClearMaskBit(layer);
 
+            // This layer is for raycasts to ignore, not for the camera to. A layer created after
+            // a camera's culling mask was set is absent from that mask, so relayering the traffic
+            // is exactly how it would stop rendering.
+            MissionSceneSetup.FixCameraCulling();
+
             EditorSceneManager.MarkAllScenesDirty();
 
             Debug.Log($"Vehicle layer {layer}: relayered {objects} objects across {cars} CarAI " +

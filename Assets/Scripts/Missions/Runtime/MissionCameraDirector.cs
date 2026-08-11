@@ -119,7 +119,8 @@ namespace ShinyMinds.Missions.Runtime
         }
 
         public IEnumerator ShotToPose(Vector3 position, Quaternion rotation, float blendSeconds,
-                                      Transform lookAt, bool letterbox)
+                                      Transform lookAt, bool letterbox,
+                                      Vector3? orbitPivot = null)
         {
             if (cutsceneCamera == null)
                 yield break;
@@ -142,13 +143,26 @@ namespace ShinyMinds.Missions.Runtime
             Vector3 fromPos = cam.position;
             Quaternion fromRot = cam.rotation;
 
+            // Arms measured from the pivot. Vector3.Slerp turns the direction by angle and
+            // interpolates the length separately, so equal lengths mean the camera swings round
+            // the subject at a constant distance — a rotation on screen, never a zoom.
+            Vector3 pivot = orbitPivot ?? Vector3.zero;
+            Vector3 fromArm = fromPos - pivot;
+            Vector3 toArm = position - pivot;
+
+            // Degenerate arms have no direction to turn; fall back to the straight line.
+            bool orbit = orbitPivot.HasValue &&
+                         fromArm.sqrMagnitude > 0.0001f && toArm.sqrMagnitude > 0.0001f;
+
             float t = 0f;
             while (t < 1f)
             {
                 t += Time.deltaTime / blendSeconds;
                 float e = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(t));
 
-                cam.position = Vector3.Lerp(fromPos, position, e);
+                cam.position = orbit
+                    ? pivot + Vector3.Slerp(fromArm, toArm, e)
+                    : Vector3.Lerp(fromPos, position, e);
 
                 // Re-aim every frame when tracking, so the shot follows a walking actor
                 // instead of blending to a pose that is already stale.

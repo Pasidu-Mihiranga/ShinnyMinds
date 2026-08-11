@@ -53,6 +53,13 @@ namespace ShinyMinds.Missions.Data
         public float minDistance = 1.6f;
         public float maxDistance = 22f;
 
+        [Tooltip("Metres from the aim point, overriding whatever distance the shot type would " +
+                 "have worked out. Give consecutive shots the SAME value and the camera orbits " +
+                 "between them at a constant distance: the angle changes, the framing size does " +
+                 "not. That is a rotation on screen. Leave at 0 to let the shot type choose, " +
+                 "which is what makes a wide-to-close-up transition read as a zoom.")]
+        public float fixedDistance = 0f;
+
         [Header("Blend")]
         public float blendSeconds = 1f;
         [Tooltip("Keep tracking this actor after the blend. Empty = hold the fixed pose.")]
@@ -74,10 +81,14 @@ namespace ShinyMinds.Missions.Data
             }
 
             var points = new List<Vector3>();
+            var missing = new List<string>();
+
             foreach (string key in subjectActorKeys)
             {
                 IMissionActor a = ctx.GetActor(key);
+
                 if (a != null) points.Add(a.Transform.position + Vector3.up * heightOffset);
+                else missing.Add(key);
             }
 
             if (points.Count == 0)
@@ -86,9 +97,30 @@ namespace ShinyMinds.Missions.Data
                 yield break;
             }
 
+            // A partly-resolved shot used to be silent, and it is the worst case: a two-shot on
+            // ["aisha", "teacher"] with no teacher in the scene frames Aisha alone and looks like
+            // a deliberately tight shot rather than a missing character.
+            if (missing.Count > 0)
+            {
+                Debug.LogWarning($"FramedShotAction: framing without [{string.Join(", ", missing)}] " +
+                                 "— not registered. The shot will cover whoever is left, so a " +
+                                 "missing character looks like an intentional angle.");
+            }
+
             IMissionActor first = ctx.GetActor(subjectActorKeys[0]);
             Vector3 aim = Centroid(points);
             Vector3 position = Solve(ctx, points, first, aim);
+
+            // Applied to every shot type uniformly: keep the direction the shot type chose, and
+            // put the camera at the requested radius along it. One line, and it turns the whole
+            // set of shot types into angles on one orbit.
+            if (fixedDistance > 0f)
+            {
+                Vector3 arm = position - aim;
+
+                if (arm.sqrMagnitude > 0.0001f)
+                    position = aim + arm.normalized * fixedDistance;
+            }
 
             position = AvoidObstruction(position, aim);
 
@@ -101,7 +133,10 @@ namespace ShinyMinds.Missions.Data
                 if (t != null) track = t.Transform;
             }
 
-            yield return ctx.Camera.ShotToPose(position, rotation, blendSeconds, track, letterbox);
+            // The aim point is what this shot is about, so it is also what the blend should turn
+            // around rather than cut straight across.
+            yield return ctx.Camera.ShotToPose(position, rotation, blendSeconds, track, letterbox,
+                                               aim);
         }
 
         Vector3 Solve(IMissionContext ctx, List<Vector3> points, IMissionActor first, Vector3 aim)
