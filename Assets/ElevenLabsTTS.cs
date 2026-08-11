@@ -3,6 +3,9 @@ using UnityEngine.Networking;
 using System.Collections;
 using System.Text;
 using System.IO;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using ShinyMinds.Config;
 
 public class ElevenLabsTTS : MonoBehaviour
 {
@@ -12,12 +15,15 @@ public class ElevenLabsTTS : MonoBehaviour
     public delegate void SpeechFinished();
     public event SpeechFinished OnSpeechFinished;
 
-    [Header("API")]
-    [TextArea]
-    public string elevenLabsApiKey;
+    // The ElevenLabs key is deliberately NOT a serialized field. Keeping it in the
+    // Inspector wrote it into SampleScene.unity and made every pull conflict.
+    // See GameConfig and .env.example in the repository root.
 
     [Header("Voice IDs")]
+    [Tooltip("Leave blank to use ELEVENLABS_NPC_VOICE_ID from .env.")]
     public string npcVoiceId;
+
+    [Tooltip("Leave blank to use ELEVENLABS_GIRL_VOICE_ID from .env.")]
     public string girlVoiceId;
 
     // NPC voice
@@ -26,7 +32,7 @@ public class ElevenLabsTTS : MonoBehaviour
         StartCoroutine(
             GenerateSpeech(
                 text,
-                npcVoiceId
+                ResolveVoiceId(npcVoiceId, GameConfig.NpcVoiceId)
             )
         );
     }
@@ -37,9 +43,18 @@ public class ElevenLabsTTS : MonoBehaviour
         StartCoroutine(
             GenerateSpeech(
                 text,
-                girlVoiceId
+                ResolveVoiceId(girlVoiceId, GameConfig.GirlVoiceId)
             )
         );
+    }
+
+    // A voice ID set on this component wins, so a single NPC can be given a distinct
+    // voice without touching everyone else's .env.
+    static string ResolveVoiceId(string inspectorValue, string configValue)
+    {
+        return string.IsNullOrWhiteSpace(inspectorValue)
+            ? configValue
+            : inspectorValue;
     }
 
     IEnumerator GenerateSpeech(
@@ -47,15 +62,43 @@ public class ElevenLabsTTS : MonoBehaviour
         string voiceId
     )
     {
+        string elevenLabsApiKey = GameConfig.ElevenLabsApiKey;
+
+        if (string.IsNullOrWhiteSpace(elevenLabsApiKey))
+        {
+            GameConfig.Require(
+                GameConfig.ElevenLabsApiKeyName,
+                "ElevenLabsTTS"
+            );
+
+            FinishWithoutSpeaking();
+
+            yield break;
+        }
+
+        if (string.IsNullOrWhiteSpace(voiceId))
+        {
+            Debug.LogError(
+                "[ElevenLabsTTS] No voice ID. Set one on this component, or set " +
+                GameConfig.NpcVoiceIdName + " / " +
+                GameConfig.GirlVoiceIdName + " in .env."
+            );
+
+            FinishWithoutSpeaking();
+
+            yield break;
+        }
+
         string url =
             "https://api.elevenlabs.io/v1/text-to-speech/"
             + voiceId;
 
-        string json =
-        "{"
-        + "\"text\":\"" + text + "\","
-        + "\"model_id\":\"eleven_multilingual_v2\""
-        + "}";
+        // Built with a JSON writer rather than string concatenation: generated dialogue
+        // regularly contains apostrophes, quotes and newlines that would break hand-built JSON.
+        string json = new JObject(
+            new JProperty("text", text),
+            new JProperty("model_id", "eleven_multilingual_v2")
+        ).ToString(Formatting.None);
 
         UnityWebRequest request =
             new UnityWebRequest(
@@ -115,9 +158,20 @@ public class ElevenLabsTTS : MonoBehaviour
         else
         {
             Debug.LogError(
+                "[ElevenLabsTTS] " + request.error + "\n" +
                 request.downloadHandler.text
             );
+
+            FinishWithoutSpeaking();
         }
+    }
+
+    // Speech could not be produced. Callers wait on IsSpeaking and OnSpeechFinished to
+    // re-enable the "E = Next" prompt, so both must still settle or the dialogue locks up.
+    void FinishWithoutSpeaking()
+    {
+        IsSpeaking = false;
+        OnSpeechFinished?.Invoke();
     }
 
     IEnumerator PlayAudio(string path)
@@ -156,8 +210,10 @@ public class ElevenLabsTTS : MonoBehaviour
         else
         {
             Debug.LogError(
-                audioRequest.error
+                "[ElevenLabsTTS] " + audioRequest.error
             );
+
+            FinishWithoutSpeaking();
         }
     }
 }

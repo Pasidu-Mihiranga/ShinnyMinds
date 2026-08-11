@@ -4,6 +4,7 @@ using TMPro;
 using System.Collections;
 using System.Text;
 using Newtonsoft.Json.Linq;
+using ShinyMinds.Config;
 
 public class GroqDialogue : MonoBehaviour
 {
@@ -29,9 +30,9 @@ public class GroqDialogue : MonoBehaviour
     [Header("Player")]
     public MonoBehaviour playerController;
 
-    [Header("Groq")]
-    [TextArea]
-    public string groqApiKey;
+    // The Groq key is deliberately NOT a serialized field. Keeping it in the Inspector
+    // wrote it into SampleScene.unity and made every pull conflict. See GameConfig
+    // and .env.example in the repository root.
 
     private bool dialogueOpen = false;
 
@@ -52,6 +53,30 @@ public class GroqDialogue : MonoBehaviour
         if (continueText != null)
         {
             continueText.text = "Generating...";
+        }
+
+        string groqApiKey = GameConfig.GroqApiKey;
+
+        if (string.IsNullOrWhiteSpace(groqApiKey))
+        {
+            GameConfig.Require(GameConfig.GroqApiKeyName, "GroqDialogue");
+
+            dialogueText.text =
+                "Dialogue is unavailable: no Groq API key configured.";
+
+            if (continueText != null)
+            {
+                continueText.text = "F = Leave";
+            }
+
+            dialogueOpen = true;
+
+            if (playerController != null)
+            {
+                playerController.enabled = false;
+            }
+
+            yield break;
         }
 
         dialogueOpen = true;
