@@ -5,6 +5,7 @@ using System.Collections;
 using System.Text;
 using Newtonsoft.Json.Linq;
 using ShinyMinds.Core;
+using ShinyMinds.Config;
 
 // Runs before NPCInteraction (-50) and DoorController (0) so an open dialogue
 // always wins the E press.
@@ -33,9 +34,9 @@ public class GroqDialogue : MonoBehaviour
     [Header("Player")]
     public MonoBehaviour playerController;
 
-    [Header("Groq")]
-    [TextArea]
-    public string groqApiKey;
+    // The Groq key is deliberately NOT a serialized field. Keeping it in the Inspector
+    // wrote it into SampleScene.unity and made every pull conflict. See GameConfig
+    // and .env.example in the repository root.
 
     private bool dialogueOpen = false;
 
@@ -68,6 +69,33 @@ public class GroqDialogue : MonoBehaviour
         if (continueText != null)
         {
             continueText.text = "Generating...";
+        }
+
+        string groqApiKey = GameConfig.GroqApiKey;
+
+        if (string.IsNullOrWhiteSpace(groqApiKey))
+        {
+            GameConfig.Require(GameConfig.GroqApiKeyName, "GroqDialogue");
+
+            dialogueText.text =
+                "Dialogue is unavailable: no Groq API key configured.";
+
+            // No lines to step through, so the first advance falls straight out of the
+            // range check in Update and closes the panel. A touch build has no F key,
+            // and this is the only way out of the message there.
+            dialogueLines = new string[0];
+            currentLine = 0;
+
+            if (continueText != null)
+            {
+                continueText.text = ContinueHint;
+            }
+
+            dialogueOpen = true;
+
+            PlayerInputLock.Acquire(this);
+
+            yield break;
         }
 
         dialogueOpen = true;
