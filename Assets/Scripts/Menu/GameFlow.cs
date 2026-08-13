@@ -1,3 +1,4 @@
+using UnityEngine;
 using UnityEngine.SceneManagement;
 
 namespace ShinyMinds.Menu
@@ -26,11 +27,22 @@ namespace ShinyMinds.Menu
 
         public static bool HasSelection => !string.IsNullOrEmpty(SelectedMissionCode);
 
+        /// <summary>
+        /// Set when the player asked for the open city rather than a named mission.
+        /// GameplayBootstrap sends an entry with neither back to the menu, so roaming
+        /// has to announce itself instead of looking like a stray scene load.
+        /// </summary>
+        public static bool OpenWorldRequested { get; private set; }
+
+        /// <summary>True when the player reached gameplay through the menu.</summary>
+        public static bool HasEntryPoint => HasSelection || OpenWorldRequested;
+
         public static void SelectMission(string code, string topic, string title)
         {
             SelectedMissionCode = code;
             SelectedMissionTopic = topic;
             SelectedMissionTitle = title;
+            OpenWorldRequested = false;
         }
 
         public static void ClearSelection()
@@ -38,6 +50,21 @@ namespace ShinyMinds.Menu
             SelectedMissionCode = null;
             SelectedMissionTopic = null;
             SelectedMissionTitle = null;
+            OpenWorldRequested = false;
+        }
+
+        /// <summary>
+        /// Enters the city with no mission chosen. The scene deliberately leaves
+        /// autoStartMission empty, so MissionTrigger offers each mission as the player
+        /// reaches it and nothing seizes control on arrival.
+        /// </summary>
+        public static void EnterOpenWorld()
+        {
+            ClearSelection();
+
+            OpenWorldRequested = true;
+
+            LoadGameplay();
         }
 
         public static void LoadGameplay()
@@ -48,6 +75,15 @@ namespace ShinyMinds.Menu
         public static void LoadMainMenu()
         {
             SceneManager.LoadScene(MainMenuScene);
+        }
+
+        // "Enter Play Mode Options -> Disable Domain Reload" keeps statics between
+        // sessions. A stale OpenWorldRequested would let SampleScene run without the
+        // menu, which is exactly what the redirect in GameplayBootstrap prevents.
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics()
+        {
+            ClearSelection();
         }
     }
 }

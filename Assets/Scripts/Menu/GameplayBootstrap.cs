@@ -35,6 +35,20 @@ namespace ShinyMinds.Menu
 
         private void Start()
         {
+            // The menu is the only way in. Neither a chosen mission nor an open-world
+            // request means SampleScene was opened directly, so hand the player back
+            // rather than dropping them into a city with no session and no progress.
+            // Deliberately done here and not in the sceneLoaded callback above: loading
+            // a scene from inside Unity's own scene-load event is asking for trouble.
+            if (!GameFlow.HasEntryPoint)
+            {
+                Debug.Log("[ShinyMinds] Gameplay entered without the menu - returning to it.");
+
+                GameFlow.LoadMainMenu();
+
+                return;
+            }
+
             if (GameFlow.HasSelection)
             {
                 Debug.Log(
@@ -43,8 +57,7 @@ namespace ShinyMinds.Menu
             }
             else
             {
-                // Pressing Play directly on SampleScene is normal while building levels.
-                Debug.Log("[ShinyMinds] Gameplay scene entered directly - no mission selected, progress is not recorded.");
+                Debug.Log("[ShinyMinds] Roaming the city - no mission selected, MissionTrigger offers them in world.");
             }
         }
 

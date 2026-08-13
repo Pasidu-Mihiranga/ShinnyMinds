@@ -25,6 +25,7 @@ namespace ShinyMinds.Menu
             Main,
             Missions,
             Profile,
+            ConfirmNewGame,
         }
 
         private const string BackgroundResourcePath = "UI/menu_background";
@@ -34,6 +35,7 @@ namespace ShinyMinds.Menu
         private RectTransform _mainPanel;
         private RectTransform _missionsPanel;
         private RectTransform _profilePanel;
+        private RectTransform _confirmNewGamePanel;
 
         // Auth screen
         private bool _registerMode;
@@ -125,6 +127,7 @@ namespace ShinyMinds.Menu
             BuildMainPanel();
             BuildMissionsPanel();
             BuildProfilePanel();
+            BuildConfirmNewGamePanel();
 
             _statusLine = MenuUI.CreateText(
                 _canvas.transform,
@@ -252,6 +255,23 @@ namespace ShinyMinds.Menu
             MenuUI.CreateButton(_missionsPanel, "Back", MenuTheme.Disabled, () => Show(Screen.Main), 56f);
         }
 
+        private void BuildConfirmNewGamePanel()
+        {
+            _confirmNewGamePanel = MenuUI.CreatePanel(_canvas.transform, "ConfirmNewGamePanel", MenuTheme.ColumnWidth);
+
+            MenuUI.CreateText(_confirmNewGamePanel, "Start a new game?", MenuTheme.HeadingFontSize, MenuTheme.Ink,
+                TextAlignmentOptions.Center, FontStyles.Bold);
+
+            MenuUI.CreateText(_confirmNewGamePanel,
+                "This erases every mission you have finished and starts again from the beginning.",
+                MenuTheme.SmallFontSize, MenuTheme.Ink);
+
+            MenuUI.SetSpacer(_confirmNewGamePanel, 8f);
+
+            MenuUI.CreateButton(_confirmNewGamePanel, "Yes, start over", MenuTheme.Danger, OnConfirmNewGame);
+            MenuUI.CreateButton(_confirmNewGamePanel, "Cancel", MenuTheme.Disabled, () => Show(Screen.Main), 56f);
+        }
+
         private void BuildProfilePanel()
         {
             _profilePanel = MenuUI.CreatePanel(_canvas.transform, "ProfilePanel", MenuTheme.ColumnWidth);
@@ -343,6 +363,7 @@ namespace ShinyMinds.Menu
             _mainPanel.gameObject.SetActive(screen == Screen.Main);
             _missionsPanel.gameObject.SetActive(screen == Screen.Missions);
             _profilePanel.gameObject.SetActive(screen == Screen.Profile);
+            _confirmNewGamePanel.gameObject.SetActive(screen == Screen.ConfirmNewGame);
 
             if (screen == Screen.Loading)
             {
@@ -568,6 +589,14 @@ namespace ShinyMinds.Menu
 
         private void OnNewGame()
         {
+            // Erasing a child's progress is not something a stray tap should do.
+            SetStatus(string.Empty);
+
+            Show(Screen.ConfirmNewGame);
+        }
+
+        private void OnConfirmNewGame()
+        {
             SetStatus("Starting a new game...");
 
             ApiClient.Instance.StartNewGame(result =>
@@ -576,12 +605,27 @@ namespace ShinyMinds.Menu
                 {
                     SetStatus(result.ErrorMessage, true);
 
+                    Show(Screen.Main);
+
                     return;
                 }
 
                 SetStatus(string.Empty);
-                RefreshProfile();
+
+                EnterOpenWorld();
             });
+        }
+
+        /// <summary>
+        /// Drops the player into the city with no mission chosen. The session still
+        /// begins here so roaming time reaches the parent dashboard; the mission attempt
+        /// itself starts when MissionTrigger is accepted in world.
+        /// </summary>
+        private void EnterOpenWorld()
+        {
+            SetStatus("Loading the city...");
+
+            GameProgressTracker.Instance.BeginSession(_ => GameFlow.EnterOpenWorld());
         }
 
         private void OnOpenMissions()
