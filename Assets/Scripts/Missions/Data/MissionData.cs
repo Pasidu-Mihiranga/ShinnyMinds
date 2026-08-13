@@ -19,6 +19,10 @@ namespace ShinyMinds.Missions.Data
         [Header("Identity")]
         public string missionId = "mission_01_road_home";
         public string title = "The Road Home";
+
+        [Tooltip("Which of the parent dashboard's four scores this mission's choices feed: " +
+                 "SAFETY, COMMUNICATION, EMPATHY or CONFIDENCE. Sent with every decision.")]
+        public string skill = "SAFETY";
         [TextArea] public string objective = "Walk home from school.";
 
         [Header("Graph")]

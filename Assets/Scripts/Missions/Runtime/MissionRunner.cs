@@ -412,6 +412,37 @@ namespace ShinyMinds.Missions.Runtime
 
             ui.HideChoices();
             PlayerInputLock.PopCursorFree(this);    // cursor re-locks and hides
+
+            ReportDecision(node);
+        }
+
+        /// <summary>
+        /// Sends the picked option to the backend. Decisions are the raw material behind
+        /// the parent dashboard's four skill scores — without them a finished mission
+        /// reports no strengths and no areas to work on.
+        /// </summary>
+        void ReportDecision(MissionNode node)
+        {
+            if (pickedChoice < 0 || pickedChoice >= node.choices.Count)
+                return;
+
+            MissionChoice choice = node.choices[pickedChoice];
+
+            // tone is what the mission already records about an option: Safest is the
+            // lesson's answer, Safe is acceptable, and the other two are the mistakes the
+            // mission exists to let a child make safely.
+            bool isCorrect = choice.tone == MissionChoiceTone.Safest
+                             || choice.tone == MissionChoiceTone.Safe;
+
+            int scoreDelta = choice.tone == MissionChoiceTone.Safest ? 10 : 7;
+
+            GameProgressTracker.Instance.RecordDecision(
+                node.id,
+                string.IsNullOrWhiteSpace(node.prompt) ? node.id : node.prompt,
+                choice.label,
+                mission.skill,
+                isCorrect,
+                scoreDelta);
         }
 
         IEnumerator ShowEnding(MissionEnding ending)
@@ -452,6 +483,18 @@ namespace ShinyMinds.Missions.Runtime
                 // would hang in the corner telling the player to walk home for the rest of the
                 // session — and the camera has to come back to the follow rig.
                 ui.SetObjective(string.Empty);
+
+                // The player is done, so the attempt has to be closed. Nothing did this
+                // before: attempts stayed open until Escape marked them ABANDONED, so the
+                // dashboard read "hasn't played yet" however many times the mission was
+                // finished.
+                //
+                // Any ending counts as finishing it, including the unsafe one — abandoned
+                // means walking out part way through, which is what Escape already records.
+                // How well it went is carried by the decisions behind the score, and by the
+                // ending's own stars; ending.completesMission is a stricter question (did
+                // they find the safest answer) and belongs to the local save, not to this.
+                GameProgressTracker.Instance.CompleteMission(abandoned: false);
 
                 // The camera comes back BEFORE the input lock lifts, not after. The
                 // cutscene camera renders by switching the main camera off, and Camera.main
