@@ -116,14 +116,22 @@ namespace ShinyMinds.Missions.EditorTools
             Image fadeImg = AddImage(fade, new Color(0f, 0f, 0f, 0f), false);
 
             // ---------------------------------------------------------- objective
+            // Sits below the minimap, not beside it. The scene's MiniMapFrame is anchored
+            // top-left at (200, -200) with a 320x320 box, so it covers x 40..360, y -40..-360:
+            // the old (40, -32) placement put this bar straight across the top of the map.
+            // 16px below its bottom edge clears it at every resolution, because both this
+            // canvas and the minimap's scale from the same 1920x1080 reference.
             GameObject objRoot = Rect("ObjectiveHud", root.transform);
-            Anchor(objRoot, new Vector2(0f, 1f), new Vector2(520f, 60f), new Vector2(40f, -32f));
-            AddRounded(objRoot, new Color(0f, 0f, 0f, 0.45f));
+            Anchor(objRoot, new Vector2(0f, 1f), new Vector2(520f, 60f), new Vector2(40f, -376f));
+            // Paper, like the mission banner, the choice buttons and the ending card. The
+            // old translucent-black bar was the only dark surface left in the mission UI.
+            AddRounded(objRoot, PaperPanel);
+            AddOutline(objRoot, 3f);
             var objHud = objRoot.AddComponent<ObjectiveHud>();
 
             GameObject objText = Rect("ObjectiveText", objRoot.transform);
             Stretch(objText, 14f);
-            TextMeshProUGUI objTmp = AddText(objText, "Objective", 26f, TextAlignmentOptions.Left, Ink);
+            TextMeshProUGUI objTmp = AddText(objText, "Objective", 26f, TextAlignmentOptions.Left, BalloonInk);
 
             Wire(objHud, ("root", objRoot), ("text", objTmp));
 

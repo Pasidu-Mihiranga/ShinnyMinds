@@ -27,12 +27,38 @@ namespace ShinyMinds.Config
         public const string GirlVoiceIdName = "ELEVENLABS_GIRL_VOICE_ID";
         public const string ApiBaseUrlName = "SHINYMINDS_API_URL";
 
+        /// <summary>
+        /// Environment variable holding the voice for a mission speaker key, e.g.
+        /// "stranger" becomes ELEVENLABS_STRANGER_VOICE_ID. Missions cast their
+        /// characters by key so a new speaker needs no code change, only a .env line.
+        /// </summary>
+        public static string VoiceIdNameFor(string speakerKey)
+        {
+            return string.IsNullOrWhiteSpace(speakerKey)
+                ? NpcVoiceIdName
+                : "ELEVENLABS_" + speakerKey.Trim().ToUpperInvariant() + "_VOICE_ID";
+        }
+
         private static Dictionary<string, string> _values;
 
         public static string GroqApiKey => Get(GroqApiKeyName);
         public static string ElevenLabsApiKey => Get(ElevenLabsApiKeyName);
         public static string NpcVoiceId => Get(NpcVoiceIdName);
         public static string GirlVoiceId => Get(GirlVoiceIdName);
+
+        /// <summary>
+        /// Voice for a mission speaker, falling back to the NPC voice when that speaker
+        /// has no line of their own in .env. The fallback is what lets a mission be cast
+        /// one character at a time instead of all at once.
+        /// </summary>
+        public static string VoiceIdForSpeaker(string speakerKey)
+        {
+            string specific = Get(VoiceIdNameFor(speakerKey));
+
+            return string.IsNullOrWhiteSpace(specific)
+                ? NpcVoiceId
+                : specific;
+        }
 
         /// <summary>Base URL of the ShinyMinds backend, without a trailing slash.</summary>
         public static string ApiBaseUrl

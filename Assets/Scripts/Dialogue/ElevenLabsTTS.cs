@@ -48,6 +48,30 @@ public class ElevenLabsTTS : MonoBehaviour
         );
     }
 
+    /// <summary>
+    /// Speaks with an explicit voice. Missions cast their own characters, so they pass
+    /// the voice in rather than picking one of the two named above.
+    /// </summary>
+    public void Speak(string text, string voiceId)
+    {
+        StartCoroutine(GenerateSpeech(text, voiceId));
+    }
+
+    /// <summary>
+    /// Cuts off the current line. Used when a mission is aborted mid-sentence, where the
+    /// alternative is a disembodied voice talking over the main menu.
+    /// </summary>
+    public void StopSpeaking()
+    {
+        StopAllCoroutines();
+
+        if (audioSource != null)
+            audioSource.Stop();
+
+        if (IsSpeaking)
+            FinishWithoutSpeaking();
+    }
+
     // A voice ID set on this component wins, so a single NPC can be given a distinct
     // voice without touching everyone else's .env.
     static string ResolveVoiceId(string inspectorValue, string configValue)
@@ -138,27 +162,23 @@ public class ElevenLabsTTS : MonoBehaviour
             byte[] audioBytes =
                 request.downloadHandler.data;
 
-            string path =
-                Application.persistentDataPath +
-                "/voice.mp3";
+            // One file per clip. Every line used to be written to the same voice.mp3,
+            // so two overlapping requests fought over it and the loader could read a
+            // half-written file — the race that kept MissionNode.speakAloud switched off.
+            string path = NextClipPath();
 
             System.IO.File.WriteAllBytes(
                 path,
                 audioBytes
             );
 
-            Debug.Log(
-                "Saved audio to: " + path
-            );
-
             yield return StartCoroutine(
                 PlayAudio(path)
             );
 
-            Debug.Log(
-                "Generated voice for: "
-                + text
-            );
+            // Cleaned up once played: these accumulate in persistentDataPath otherwise,
+            // one file per spoken line, for the life of the install.
+            TryDelete(path);
         }
         else
         {
@@ -168,6 +188,34 @@ public class ElevenLabsTTS : MonoBehaviour
             );
 
             FinishWithoutSpeaking();
+        }
+    }
+
+    // Unique per clip and per run: the counter alone would collide with files left behind
+    // by a previous session if one was killed before its cleanup ran.
+    static int clipCounter;
+
+    static string NextClipPath()
+    {
+        clipCounter++;
+
+        return Path.Combine(
+            Application.persistentDataPath,
+            $"voice_{System.DateTime.UtcNow.Ticks}_{clipCounter}.mp3"
+        );
+    }
+
+    static void TryDelete(string path)
+    {
+        try
+        {
+            if (File.Exists(path))
+                File.Delete(path);
+        }
+        catch (System.Exception e)
+        {
+            // A clip still held open by the audio system is not worth failing a line over.
+            Debug.LogWarning("[ElevenLabsTTS] Could not delete " + path + ": " + e.Message);
         }
     }
 

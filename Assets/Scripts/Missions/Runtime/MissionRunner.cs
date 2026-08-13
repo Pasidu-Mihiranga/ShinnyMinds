@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using ShinyMinds.Config;
 using ShinyMinds.Core;
 using ShinyMinds.Core.Save;
 using ShinyMinds.Missions.Data;
@@ -33,6 +34,9 @@ namespace ShinyMinds.Missions.Runtime
         [Tooltip("Optional. Left empty, the runner uses whichever MemoryStage is in the " +
                  "scene, since this component ships inside a prefab.")]
         [SerializeField] MemoryStage memoryStage;
+        [Tooltip("Optional. Speaks nodes that set speakAloud. Left empty, the runner finds " +
+                 "one in the scene; with none at all, missions play silently as before.")]
+        [SerializeField] ElevenLabsTTS voice;
 
         [Header("Presentation")]
         [SerializeField] float typewriterCharsPerSecond = 45f;
@@ -47,6 +51,7 @@ namespace ShinyMinds.Missions.Runtime
         string pendingRestartId;
         bool memoryOpen;
         bool warnedNoMemory;
+        bool warnedNoVoice;
         readonly Dictionary<string, bool> flags = new Dictionary<string, bool>();
         readonly HashSet<string> warnedMissingSpeaker = new HashSet<string>();
 
@@ -264,12 +269,20 @@ namespace ShinyMinds.Missions.Runtime
                             body != null ? cameraDirector?.ActiveCamera : null);
             }
 
+            // Started with the line, not after the typewriter: the audio and the text
+            // should arrive together, and the request takes a moment to come back.
+            SpeakLine(node, speaker);
+
             // The first press (or tap) completes the typewriter rather than advancing.
             bool skipped = false;
             yield return ui.PlayTypewriter(
                 node.text,
                 typewriterCharsPerSecond,
                 () => { skipped = skipped || InteractKey.TryConsumeUI(); return skipped; });
+
+            // Before either advance path: a line that is still being spoken is not
+            // finished, however long its timer was or how fast the player presses.
+            yield return WaitForSpeech();
 
             if (node.autoAdvanceSeconds > 0f)
             {
@@ -442,9 +455,79 @@ namespace ShinyMinds.Missions.Runtime
             ui?.HideAll();
             Stage?.SetOpen(false);
             memoryOpen = false;
+
+            // Otherwise a line cut off mid-sentence keeps talking over whatever comes
+            // next — free roam, a retry, or the main menu.
+            voice?.StopSpeaking();
+
             PlayerInputLock.ResetAll();
             flags.Clear();
             pickedChoice = -1;
+        }
+
+        // ------------------------------------------------------------------- voice
+
+        /// <summary>
+        /// The TTS component, found lazily. This runner ships inside a prefab, so it
+        /// cannot hold a scene reference until the scene exists around it.
+        /// </summary>
+        ElevenLabsTTS Voice
+        {
+            get
+            {
+                if (voice == null)
+                    voice = FindObjectOfType<ElevenLabsTTS>();
+
+                return voice;
+            }
+        }
+
+        /// <summary>
+        /// Speaks a line when the node opts in. The voice is cast per speaker: an id set
+        /// on the SpeakerProfile wins, otherwise ELEVENLABS_&lt;KEY&gt;_VOICE_ID from .env,
+        /// otherwise the shared NPC voice. Silent when nothing is configured, which is
+        /// what keeps a fresh checkout playable without any ElevenLabs account.
+        /// </summary>
+        void SpeakLine(MissionNode node, SpeakerProfile speaker)
+        {
+            if (!node.speakAloud || string.IsNullOrWhiteSpace(node.text))
+                return;
+
+            ElevenLabsTTS tts = Voice;
+
+            if (tts == null)
+            {
+                if (warnedNoVoice)
+                    return;
+
+                warnedNoVoice = true;
+
+                Debug.LogWarning($"[{mission.missionId}] Node '{node.id}' asks to be spoken " +
+                                 "aloud but no ElevenLabsTTS exists in the scene. Lines will " +
+                                 "play as subtitles only.", this);
+
+                return;
+            }
+
+            string voiceId = speaker != null && !string.IsNullOrWhiteSpace(speaker.elevenLabsVoiceId)
+                ? speaker.elevenLabsVoiceId
+                : GameConfig.VoiceIdForSpeaker(speaker?.key);
+
+            if (string.IsNullOrWhiteSpace(voiceId))
+                return;
+
+            tts.Speak(node.text, voiceId);
+        }
+
+        /// <summary>
+        /// Holds the line on screen until its audio has finished. Without this the player
+        /// can press through a sentence while it is still being spoken and the next line
+        /// talks over it.
+        /// </summary>
+        IEnumerator WaitForSpeech()
+        {
+            while (voice != null && voice.IsSpeaking)
+                yield return null;
         }
 
         /// <summary>The speaker's transform in the scene, or null for a bodiless voice.</summary>

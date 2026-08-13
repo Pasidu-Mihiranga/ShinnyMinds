@@ -436,11 +436,15 @@ namespace ShinyMinds.Missions.EditorTools
 
         // -------------------------------------------------------------- node helpers
 
+        // Every spoken node in this mission is voiced. The runner casts each line from the
+        // speaker's key, and falls silent by itself when no ElevenLabs key is configured,
+        // so this stays safe on a checkout with no .env.
         static MissionNode Line(string id, string speaker, string text, string next) =>
             new MissionNode
             {
                 id = id, kind = MissionNodeKind.Line,
                 speakerKey = speaker, text = text, nextId = next,
+                speakAloud = true,
             };
 
         static MissionNode Thought(string id, string speaker, string text, string next) =>
@@ -448,6 +452,7 @@ namespace ShinyMinds.Missions.EditorTools
             {
                 id = id, kind = MissionNodeKind.Thought,
                 speakerKey = speaker, text = text, nextId = next,
+                speakAloud = true,
             };
 
         /// <summary>
@@ -459,6 +464,7 @@ namespace ShinyMinds.Missions.EditorTools
             {
                 id = id, kind = MissionNodeKind.Memory,
                 speakerKey = speaker, text = text, nextId = next,
+                speakAloud = true,
             };
 
         static MissionNode Cutscene(string id, string next, params CutsceneAction[] actions) =>

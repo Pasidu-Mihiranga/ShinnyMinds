@@ -30,6 +30,18 @@ namespace ShinyMinds.Menu
 
         private const string BackgroundResourcePath = "UI/menu_background";
 
+        /// <summary>
+        /// The only mission that exists as playable content. The backend seeds the whole
+        /// eight-mission catalogue and unlocks them in order, but only this one has been
+        /// built in the scene — the rest would drop the player into an empty city.
+        ///
+        /// This is the backend row titled "The Road Home"; the Unity asset is
+        /// mission_01_road_home. Delete this gate once a second mission ships.
+        /// </summary>
+        private const string PlayableMissionCode = "school_zone";
+
+        private const string ComingSoonStatus = "Coming soon";
+
         private Canvas _canvas;
         private RectTransform _authPanel;
         private RectTransform _mainPanel;
@@ -55,6 +67,10 @@ namespace ShinyMinds.Menu
         private TextMeshProUGUI _progressLine;
         private Button _continueButton;
         private TextMeshProUGUI _continueLabel;
+
+        // Which mission the Continue button acts on, resolved once per visit to the main
+        // screen by ApplyProfile.
+        private ContinueMission _startTarget;
 
         // Missions and profile
         private RectTransform _missionList;
@@ -518,21 +534,52 @@ namespace ShinyMinds.Menu
                 $"{_profile.MissionsCompleted} of {_profile.MissionsTotal} missions complete" +
                 $"   •   {FormatPlaytime(_profile.PlaytimeSeconds)} played";
 
-            bool canContinue = _profile.ContinueMission != null;
+            // The backend unlocks all eight missions in order, so its continue target is
+            // usually one that has no scene content yet. The button follows the mission
+            // that actually exists instead.
+            _startTarget = ResolveStartTarget();
 
-            _continueButton.interactable = canContinue;
+            _continueButton.interactable = _startTarget != null;
 
-            if (!canContinue)
+            if (_startTarget == null)
             {
                 _continueLabel.text = "All missions complete!";
 
                 return;
             }
 
-            _continueLabel.text = _profile.ContinueMission.Resuming
-                ? $"Continue: {_profile.ContinueMission.Title}"
-                : $"Start: {_profile.ContinueMission.Title}";
+            _continueLabel.text = _startTarget.Resuming
+                ? $"Continue: {_startTarget.Title}"
+                : $"Start: {_startTarget.Title}";
         }
+
+        /// <summary>
+        /// Which mission the Continue button acts on. The server's own choice when it
+        /// happens to be the built one, otherwise the built one described locally —
+        /// the profile response carries no mission list to look it up in.
+        /// </summary>
+        private ContinueMission ResolveStartTarget()
+        {
+            ContinueMission fromServer = _profile.ContinueMission;
+
+            if (fromServer != null && IsPlayable(fromServer.Code))
+            {
+                return fromServer;
+            }
+
+            return new ContinueMission
+            {
+                Code = PlayableMissionCode,
+                Title = "The Road Home",
+                Topic = "school zone safety",
+                Resuming = false,
+            };
+        }
+
+        private static bool IsPlayable(MissionSummary mission) =>
+            mission != null && IsPlayable(mission.Code);
+
+        private static bool IsPlayable(string code) => code == PlayableMissionCode;
 
         private void UpdateProfileText()
         {
@@ -576,15 +623,15 @@ namespace ShinyMinds.Menu
 
         private void OnContinue()
         {
-            if (_profile?.ContinueMission == null)
+            if (_startTarget == null)
             {
                 return;
             }
 
             StartMission(
-                _profile.ContinueMission.Code,
-                _profile.ContinueMission.Topic,
-                _profile.ContinueMission.Title);
+                _startTarget.Code,
+                _startTarget.Topic,
+                _startTarget.Title);
         }
 
         private void OnNewGame()
@@ -658,23 +705,30 @@ namespace ShinyMinds.Menu
 
             foreach (MissionSummary mission in missions)
             {
-                string status = mission.IsCompleted
-                    ? $"Best {mission.BestScore}/{mission.MaxScore}"
-                    : mission.IsUnlocked ? "Ready to play" : "Locked";
+                bool playable = IsPlayable(mission);
+
+                string status = !playable
+                    ? ComingSoonStatus
+                    : mission.IsCompleted
+                        ? $"Best {mission.BestScore}/{mission.MaxScore}"
+                        : mission.IsUnlocked ? "Ready to play" : "Locked";
 
                 string label = $"{mission.OrderIndex}. {mission.Title}   ({status})";
 
-                Color color = mission.IsCompleted
-                    ? MenuTheme.Primary
-                    : mission.IsUnlocked ? MenuTheme.Secondary : MenuTheme.Disabled;
+                Color color = !playable
+                    ? MenuTheme.Disabled
+                    : mission.IsCompleted
+                        ? MenuTheme.Primary
+                        : mission.IsUnlocked ? MenuTheme.Secondary : MenuTheme.Disabled;
 
                 MissionSummary captured = mission;
 
                 Button button = MenuUI.CreateButton(_missionList, label, color, () =>
                     StartMission(captured.Code, captured.Topic, captured.Title), 74f);
 
-                // Completed missions stay replayable; only locked ones are blocked.
-                button.interactable = mission.IsUnlocked || mission.IsCompleted;
+                // Completed missions stay replayable; locked ones and the ones that have
+                // no scene content yet are blocked.
+                button.interactable = playable && (mission.IsUnlocked || mission.IsCompleted);
 
                 _missionRows.Add(button.gameObject);
             }
