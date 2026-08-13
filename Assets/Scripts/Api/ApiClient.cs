@@ -188,6 +188,24 @@ namespace ShinyMinds.Api
                 Send("POST", $"/api/game/attempts/{attemptId}/decisions", body, true, onDone));
         }
 
+        /// <summary>
+        /// Records how far the player has got, so Continue can resume there. Best-effort:
+        /// a checkpoint that fails to save costs a little replayed dialogue and nothing more.
+        /// </summary>
+        public Coroutine SaveCheckpoint(
+            string attemptId,
+            string nodeId,
+            Action<ApiResult<object>> onDone = null)
+        {
+            return StartCoroutine(
+                Send(
+                    "POST",
+                    $"/api/game/attempts/{attemptId}/checkpoint",
+                    new { nodeId },
+                    true,
+                    onDone));
+        }
+
         public Coroutine CompleteMission(
             string attemptId,
             int durationSeconds,

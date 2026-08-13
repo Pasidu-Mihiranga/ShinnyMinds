@@ -88,6 +88,14 @@ export const gameplayRepository = {
     });
   },
 
+  /** Moves an attempt's resume point. Called as the player passes each checkpoint. */
+  saveCheckpoint(id: string, checkpointNodeId: string): Promise<MissionAttempt> {
+    return prisma.missionAttempt.update({
+      where: { id },
+      data: { checkpointNodeId },
+    });
+  },
+
   completeAttempt(
     id: string,
     data: { status: AttemptStatus; score: number; durationSeconds: number },

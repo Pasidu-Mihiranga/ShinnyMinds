@@ -1,4 +1,5 @@
 using ShinyMinds.Core;
+using ShinyMinds.Menu;
 using ShinyMinds.Missions.Data;
 using ShinyMinds.Missions.UI;
 using UnityEngine;
@@ -52,6 +53,18 @@ namespace ShinyMinds.Missions.Runtime
         }
 
         void OnDisable() => Withdraw();
+
+        void Start()
+        {
+            // Continue on the main menu resumes the mission outright. Waiting for the
+            // player to walk back to the offer zone and accept would mean replaying the
+            // walk to it, which is the part they already did.
+            if (runner != null && mission != null && !runner.IsRunning
+                && GameFlow.ResumeMissionId == mission.missionId)
+            {
+                runner.Begin(mission);
+            }
+        }
 
         void Update()
         {

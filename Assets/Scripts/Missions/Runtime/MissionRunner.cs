@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using ShinyMinds.Config;
 using ShinyMinds.Core;
 using ShinyMinds.Core.Save;
+using ShinyMinds.Menu;
 using ShinyMinds.Missions.Data;
+using ShinyMinds.Progress;
 using ShinyMinds.Missions.UI;
 using UnityEngine;
 
@@ -106,7 +108,26 @@ namespace ShinyMinds.Missions.Runtime
 
             flags.Clear();
             pendingRestartId = null;
-            loop = StartCoroutine(RunFrom(mission.startNodeId));
+
+            // Continue on the main menu leaves a checkpoint for this mission. Reading it
+            // clears it, so a retry later in the same session starts from the top.
+            string startNode = mission.startNodeId;
+
+            if (GameFlow.ConsumeResume(mission.missionId, out string resumeNode))
+            {
+                if (mission.GetNode(resumeNode) != null)
+                {
+                    startNode = resumeNode;
+                }
+                else
+                {
+                    // The mission was edited since the checkpoint was written.
+                    Debug.LogWarning($"[{mission.missionId}] Checkpoint node '{resumeNode}' no " +
+                                     "longer exists. Starting from the beginning.", this);
+                }
+            }
+
+            loop = StartCoroutine(RunFrom(startNode));
         }
 
         /// <summary>Aborts the mission and hands the player back a clean world.</summary>
@@ -149,6 +170,11 @@ namespace ShinyMinds.Missions.Runtime
                     Debug.LogError($"[{mission.missionId}] Unknown node id '{current}'. Stopping.", this);
                     break;
                 }
+
+                // Where Continue will pick this attempt up. Recorded per node rather than
+                // at scene beats: the graph is the only thing that knows where the player
+                // actually is, and re-entering the city cannot reconstruct it.
+                GameProgressTracker.Instance.RecordCheckpoint(current);
 
                 switch (node.kind)
                 {

@@ -58,6 +58,12 @@ namespace ShinyMinds.Api
         [JsonProperty("title")] public string Title;
         [JsonProperty("topic")] public string Topic;
         [JsonProperty("resuming")] public bool Resuming;
+
+        /// <summary>
+        /// Node to resume the mission at. Null when the attempt never reached a
+        /// checkpoint, in which case the mission starts from the beginning.
+        /// </summary>
+        [JsonProperty("checkpointNodeId")] public string CheckpointNodeId;
     }
 
     [Serializable]

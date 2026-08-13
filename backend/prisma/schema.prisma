@@ -150,6 +150,9 @@ model MissionAttempt {
   startedAt       DateTime      @default(now())
   completedAt     DateTime?
   durationSeconds Int           @default(0)
+  // Node the player last reached in the mission graph, so Continue resumes there
+  // instead of replaying from the top. Null until the first checkpoint is passed.
+  checkpointNodeId String?
 
   child     Child        @relation(fields: [childId], references: [id], onDelete: Cascade)
   mission   Mission      @relation(fields: [missionId], references: [id], onDelete: Cascade)

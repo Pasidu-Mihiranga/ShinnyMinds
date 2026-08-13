@@ -209,6 +209,31 @@ namespace ShinyMinds.Progress
                 });
         }
 
+        /// <summary>
+        /// Marks how far through the mission the player has got, so Continue resumes here.
+        /// Silent when no mission is being tracked: missions are playable without a signed-in
+        /// session (straight from the Missions list, or in the editor), and a checkpoint is
+        /// never worth a warning in the console on every line.
+        /// </summary>
+        public void RecordCheckpoint(string nodeId)
+        {
+            if (!HasActiveMission || string.IsNullOrEmpty(nodeId))
+            {
+                return;
+            }
+
+            ApiClient.Instance.SaveCheckpoint(
+                AttemptId,
+                nodeId,
+                result =>
+                {
+                    if (!result.Success)
+                    {
+                        Debug.LogWarning($"[Progress] Checkpoint not saved: {result.ErrorMessage}");
+                    }
+                });
+        }
+
         public void CompleteMission(bool abandoned = false, Action<MissionResultResponse> onDone = null)
         {
             if (!HasActiveMission)

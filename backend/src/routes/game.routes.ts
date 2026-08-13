@@ -3,6 +3,7 @@ import { asyncHandler } from '../lib/async-handler.js';
 import { authenticate, currentAccount } from '../middleware/auth.js';
 import { validateBody } from '../middleware/validate.js';
 import {
+  checkpointSchema,
   completeMissionSchema,
   decisionSchema,
   sessionProgressSchema,
@@ -92,6 +93,22 @@ gameRouter.post(
         currentAccount(req).id,
         req.params.attemptId as string,
         req.body,
+      ),
+    );
+  }),
+);
+
+// Where the player has got to, so Continue can resume there rather than replaying
+// the mission from its first line.
+gameRouter.post(
+  '/attempts/:attemptId/checkpoint',
+  validateBody(checkpointSchema),
+  asyncHandler(async (req, res) => {
+    res.json(
+      await gameService.saveCheckpoint(
+        currentAccount(req).id,
+        req.params.attemptId as string,
+        req.body.nodeId,
       ),
     );
   }),

@@ -42,6 +42,13 @@ namespace ShinyMinds.Menu
 
         private const string ComingSoonStatus = "Coming soon";
 
+        /// <summary>
+        /// The MissionData asset id behind <see cref="PlayableMissionCode"/>. The server
+        /// knows missions by their catalogue code; the scene knows them by asset id, and
+        /// a resume has to name the one the mission zone will recognise.
+        /// </summary>
+        private const string PlayableMissionAssetId = "mission_01_road_home";
+
         private Canvas _canvas;
         private RectTransform _authPanel;
         private RectTransform _mainPanel;
@@ -631,7 +638,8 @@ namespace ShinyMinds.Menu
             StartMission(
                 _startTarget.Code,
                 _startTarget.Topic,
-                _startTarget.Title);
+                _startTarget.Title,
+                _startTarget.CheckpointNodeId);
         }
 
         private void OnNewGame()
@@ -740,11 +748,18 @@ namespace ShinyMinds.Menu
             Show(Screen.Profile);
         }
 
-        private void StartMission(string code, string topic, string title)
+        private void StartMission(string code, string topic, string title,
+                                  string checkpointNodeId = null)
         {
             SetStatus($"Loading {title}...");
 
-            GameFlow.SelectMission(code, topic, title);
+            // A checkpoint only means anything for the mission that is actually built,
+            // and only its asset id is meaningful once the scene loads.
+            string resumeAssetId = IsPlayable(code) && !string.IsNullOrEmpty(checkpointNodeId)
+                ? PlayableMissionAssetId
+                : null;
+
+            GameFlow.SelectMission(code, topic, title, resumeAssetId, checkpointNodeId);
 
             // The play session starts here so time spent loading and playing is counted
             // as one continuous session on the dashboard.

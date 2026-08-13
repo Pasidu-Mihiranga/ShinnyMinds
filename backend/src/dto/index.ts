@@ -75,6 +75,11 @@ export const decisionSchema = z.object({
   scoreDelta: z.coerce.number().int().min(-100).max(100).optional(),
 });
 
+// Node ids come from the mission asset, e.g. "s2_crossing_choice".
+export const checkpointSchema = z.object({
+  nodeId: z.string().min(1).max(120),
+});
+
 export const completeMissionSchema = z.object({
   durationSeconds: z.coerce.number().int().min(0).max(86_400),
   abandoned: z.boolean().optional(),

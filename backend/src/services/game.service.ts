@@ -134,6 +134,23 @@ export const gameService = {
     return { attemptId: attempt.id, missionCode: mission.code, resumed: false };
   },
 
+  /**
+   * Moves the resume point of an in-progress attempt. Fire-and-forget from the client:
+   * a lost checkpoint only costs the player a little replayed dialogue, so this must
+   * never be allowed to interrupt a mission.
+   */
+  async saveCheckpoint(childId: string, attemptId: string, nodeId: string) {
+    const attempt = await this.assertAttemptOwned(childId, attemptId);
+
+    if (attempt.status !== 'IN_PROGRESS') {
+      throw HttpError.conflict('That mission attempt has already finished.');
+    }
+
+    await gameplayRepository.saveCheckpoint(attemptId, nodeId);
+
+    return { attemptId, checkpointNodeId: nodeId };
+  },
+
   async recordDecision(
     childId: string,
     attemptId: string,
@@ -239,7 +256,12 @@ export const gameService = {
 function resolveContinueTarget(
   missions: { id: string; code: string; title: string; topic: string }[],
   bestScores: Map<string, number>,
-  latestAttempt: { missionId: string; status: string; mission: { code: string; title: string; topic: string } } | null,
+  latestAttempt: {
+    missionId: string;
+    status: string;
+    checkpointNodeId: string | null;
+    mission: { code: string; title: string; topic: string };
+  } | null,
 ) {
   if (latestAttempt && latestAttempt.status === 'IN_PROGRESS') {
     return {
@@ -247,6 +269,9 @@ function resolveContinueTarget(
       title: latestAttempt.mission.title,
       topic: latestAttempt.mission.topic,
       resuming: true,
+      // Where to pick the mission up. Null when the attempt was abandoned before the
+      // first checkpoint, in which case the client starts it from the beginning.
+      checkpointNodeId: latestAttempt.checkpointNodeId,
     };
   }
 
@@ -261,5 +286,6 @@ function resolveContinueTarget(
     title: nextUnplayed.title,
     topic: nextUnplayed.topic,
     resuming: false,
+    checkpointNodeId: null,
   };
 }
