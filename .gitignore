@@ -87,3 +87,8 @@ npm-debug.log*
 
 # Prisma local state
 backend/prisma/*.db
+
+# Player builds and the API keys baked into them
+/Builds/
+/Assets/Resources/BuildConfig.txt
+/Assets/Resources/BuildConfig.txt.meta

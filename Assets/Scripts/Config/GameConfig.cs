@@ -28,6 +28,14 @@ namespace ShinyMinds.Config
         public const string ApiBaseUrlName = "SHINYMINDS_API_URL";
 
         /// <summary>
+        /// Resources asset the build script writes .env into. A player has no repository
+        /// root to read, and on Android StreamingAssets lives inside the .apk where
+        /// File.Exists is always false — a Resources asset is the one place that can be
+        /// read synchronously on every platform.
+        /// </summary>
+        public const string BakedConfigResource = "BuildConfig";
+
+        /// <summary>
         /// Environment variable holding the voice for a mission speaker key, e.g.
         /// "stranger" becomes ELEVENLABS_STRANGER_VOICE_ID. Missions cast their
         /// characters by key so a new speaker needs no code change, only a .env line.
@@ -145,6 +153,19 @@ namespace ShinyMinds.Config
                 Parse(File.ReadAllLines(path));
 
                 Debug.Log($"[GameConfig] Loaded {_values.Count} value(s) from {path}");
+
+                return;
+            }
+
+            // Last: whatever was baked in at build time. Deliberately after the file paths,
+            // so dropping a .env next to a shipped player still overrides the build.
+            TextAsset baked = Resources.Load<TextAsset>(BakedConfigResource);
+
+            if (baked != null)
+            {
+                Parse(baked.text.Split('\n'));
+
+                Debug.Log($"[GameConfig] Loaded {_values.Count} value(s) baked into this build.");
 
                 return;
             }
