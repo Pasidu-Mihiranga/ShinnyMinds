@@ -13918,7 +13918,6 @@ MonoBehaviour:
   continueText: {fileID: 1958619692}
   dialoguePanel: {fileID: 1227235302}
   playerController: {fileID: 1286381379}
-  groqApiKey: 
 --- !u!114 &1265593468
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -13932,7 +13931,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ElevenLabsTTS
   audioSource: {fileID: 645865771}
-  elevenLabsApiKey: 
   npcVoiceId: 3ycytQ58e6nrECICBNUk
   girlVoiceId: oEoV2ntAODdFt6DlIsr6
 --- !u!1 &1272024977
@@ -20988,7 +20986,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ElevenLabsTTS
   audioSource: {fileID: 2125766193}
-  elevenLabsApiKey: 
   npcVoiceId: 3ycytQ58e6nrECICBNUk
   girlVoiceId: oEoV2ntAODdFt6DlIsr6
 --- !u!114 &1888105062
@@ -21012,7 +21009,6 @@ MonoBehaviour:
   continueText: {fileID: 1770596276}
   dialoguePanel: {fileID: 1470591608}
   playerController: {fileID: 1286381379}
-  groqApiKey: 
 --- !u!1 &1889425628
 GameObject:
   m_ObjectHideFlags: 0
@@ -43782,7 +43778,7 @@ Transform:
   m_GameObject: {fileID: 1502032997637918987}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: 4.0733955e-22, z: 8.4703295e-22, w: 1}
-  m_LocalPosition: {x: -0.329, y: 0, z: -0.169}
+  m_LocalPosition: {x: 0.000999929, y: -0.000000019073436, z: -0.001500085}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

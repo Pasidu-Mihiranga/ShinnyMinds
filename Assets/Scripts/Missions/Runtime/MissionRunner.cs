@@ -36,9 +36,14 @@ namespace ShinyMinds.Missions.Runtime
         [Tooltip("Optional. Left empty, the runner uses whichever MemoryStage is in the " +
                  "scene, since this component ships inside a prefab.")]
         [SerializeField] MemoryStage memoryStage;
-        [Tooltip("Optional. Speaks nodes that set speakAloud. Left empty, the runner finds " +
-                 "one in the scene; with none at all, missions play silently as before.")]
+        [Tooltip("Optional. Speaks the mission's lines. Left empty, the runner finds one in " +
+                 "the scene; with none at all, missions play silently as before.")]
         [SerializeField] ElevenLabsTTS voice;
+        [Tooltip("Voice every line, rather than only nodes whose speakAloud is ticked. " +
+                 "speakAloud predates the mission being fully voiced, and it lives in the " +
+                 "mission asset — leaving this off means re-running the mission builder " +
+                 "before any sound is heard. Untick to honour the per-node flag instead.")]
+        [SerializeField] bool voiceEveryLine = true;
 
         [Header("Presentation")]
         [SerializeField] float typewriterCharsPerSecond = 45f;
@@ -54,6 +59,7 @@ namespace ShinyMinds.Missions.Runtime
         bool memoryOpen;
         bool warnedNoMemory;
         bool warnedNoVoice;
+        AudioSource voiceAudio;
         readonly Dictionary<string, bool> flags = new Dictionary<string, bool>();
         readonly HashSet<string> warnedMissingSpeaker = new HashSet<string>();
 
@@ -485,6 +491,7 @@ namespace ShinyMinds.Missions.Runtime
             // Otherwise a line cut off mid-sentence keeps talking over whatever comes
             // next — free roam, a retry, or the main menu.
             voice?.StopSpeaking();
+            voiceAudio?.Stop();
 
             PlayerInputLock.ResetAll();
             flags.Clear();
@@ -497,15 +504,29 @@ namespace ShinyMinds.Missions.Runtime
         /// The TTS component, found lazily. This runner ships inside a prefab, so it
         /// cannot hold a scene reference until the scene exists around it.
         /// </summary>
-        ElevenLabsTTS Voice
+        /// <summary>
+        /// The mission's own voice rig, created on demand. Deliberately not the NPCs':
+        /// GroqDialogue drives those, gating its "E = Next" prompt on their IsSpeaking and
+        /// listening for their OnSpeechFinished, so borrowing one would make a mission line
+        /// look like an NPC's and let a mission abort cut off a conversation mid-sentence.
+        /// </summary>
+        void EnsureVoiceHost()
         {
-            get
-            {
-                if (voice == null)
-                    voice = FindObjectOfType<ElevenLabsTTS>();
+            if (voiceAudio != null)
+                return;
 
-                return voice;
-            }
+            var host = new GameObject("MissionVoice");
+            host.transform.SetParent(transform, false);
+
+            voiceAudio = host.AddComponent<AudioSource>();
+            voiceAudio.playOnAwake = false;
+
+            // Shares the AudioSource, so "is a line still playing" is one question however
+            // the audio was produced.
+            if (voice == null)
+                voice = host.AddComponent<ElevenLabsTTS>();
+
+            voice.audioSource = voiceAudio;
         }
 
         /// <summary>
@@ -516,33 +537,46 @@ namespace ShinyMinds.Missions.Runtime
         /// </summary>
         void SpeakLine(MissionNode node, SpeakerProfile speaker)
         {
-            if (!node.speakAloud || string.IsNullOrWhiteSpace(node.text))
+            if (!(node.speakAloud || voiceEveryLine) || string.IsNullOrWhiteSpace(node.text))
                 return;
 
-            ElevenLabsTTS tts = Voice;
+            EnsureVoiceHost();
 
-            if (tts == null)
+            // Baked first, and for a shipped build that is the only path taken: the whole
+            // mission was generated once by ShinyMinds/Voice/Bake Mission Dialogue.
+            AudioClip baked = MissionVoiceBank.Load(mission.missionId, node);
+
+            if (baked != null)
+            {
+                voiceAudio.Stop();
+                voiceAudio.clip = baked;
+                voiceAudio.Play();
+
+                return;
+            }
+
+            // Not baked, or the line has been edited since the last bake. Generating it now
+            // keeps a mission playable while its dialogue is still being written.
+            string voiceId = speaker != null && !string.IsNullOrWhiteSpace(speaker.elevenLabsVoiceId)
+                ? speaker.elevenLabsVoiceId
+                : GameConfig.VoiceIdForSpeaker(speaker?.key);
+
+            if (string.IsNullOrWhiteSpace(voiceId))
             {
                 if (warnedNoVoice)
                     return;
 
                 warnedNoVoice = true;
 
-                Debug.LogWarning($"[{mission.missionId}] Node '{node.id}' asks to be spoken " +
-                                 "aloud but no ElevenLabsTTS exists in the scene. Lines will " +
-                                 "play as subtitles only.", this);
+                Debug.LogWarning($"[{mission.missionId}] No voice for speaker " +
+                                 $"'{speaker?.key}'. Set {GameConfig.VoiceIdNameFor(speaker?.key)} " +
+                                 $"or {GameConfig.NpcVoiceIdName} in .env, or bake the mission. " +
+                                 "Lines play as subtitles only.", this);
 
                 return;
             }
 
-            string voiceId = speaker != null && !string.IsNullOrWhiteSpace(speaker.elevenLabsVoiceId)
-                ? speaker.elevenLabsVoiceId
-                : GameConfig.VoiceIdForSpeaker(speaker?.key);
-
-            if (string.IsNullOrWhiteSpace(voiceId))
-                return;
-
-            tts.Speak(node.text, voiceId);
+            voice.Speak(node.text, voiceId);
         }
 
         /// <summary>
@@ -552,8 +586,13 @@ namespace ShinyMinds.Missions.Runtime
         /// </summary>
         IEnumerator WaitForSpeech()
         {
-            while (voice != null && voice.IsSpeaking)
+            // Both paths land on the same AudioSource, but a live line is still being
+            // fetched before anything plays, so IsSpeaking has to be asked as well.
+            while ((voiceAudio != null && voiceAudio.isPlaying)
+                   || (voice != null && voice.IsSpeaking))
+            {
                 yield return null;
+            }
         }
 
         /// <summary>The speaker's transform in the scene, or null for a bodiless voice.</summary>
