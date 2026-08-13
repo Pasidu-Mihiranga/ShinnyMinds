@@ -137,12 +137,20 @@ public class CameraController : MonoBehaviour
             70f
         );
 
-        Camera.main.transform.localRotation =
-            Quaternion.Euler(
-                xRotation,
-                0f,
-                0f
-            );
+        // Guarded like the read at the top of this file. A cutscene renders by switching
+        // the main camera off, and Camera.main only ever returns an ENABLED camera, so
+        // there are frames — the blend back out of a cutscene — with no main camera at all.
+        Camera view = Camera.main;
+
+        if (view != null)
+        {
+            view.transform.localRotation =
+                Quaternion.Euler(
+                    xRotation,
+                    0f,
+                    0f
+                );
+        }
 
         // =========================
         // MOVEMENT CHECK

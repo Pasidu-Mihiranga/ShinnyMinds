@@ -452,8 +452,16 @@ namespace ShinyMinds.Missions.Runtime
                 // would hang in the corner telling the player to walk home for the rest of the
                 // session — and the camera has to come back to the follow rig.
                 ui.SetObjective(string.Empty);
-                PlayerInputLock.Release(this);
+
+                // The camera comes back BEFORE the input lock lifts, not after. The
+                // cutscene camera renders by switching the main camera off, and Camera.main
+                // only ever returns an enabled camera — so for the length of this blend
+                // there is no main camera. Lifting the lock first let CameraController read
+                // look input against it and throw a NullReferenceException every frame of
+                // the blend, leaving the rig frozen just as the player got control back.
                 yield return cameraDirector.Release(0.6f);
+
+                PlayerInputLock.Release(this);
 
                 // And the screen has to come BACK from black. Path A walks the pair off and fades
                 // out (`Fade(true, 2.0f)`) with nothing that ever fades in again: only the retry
