@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using ShinyMinds.Api;
+using ShinyMinds.Core;
 using ShinyMinds.Progress;
 using TMPro;
 using UnityEngine;
@@ -78,6 +79,11 @@ namespace ShinyMinds.Menu
 
         private void Start()
         {
+            // The cursor is global state that survives LoadScene, and gameplay leaves it
+            // locked and hidden. Without this claim the menu is unusable on the way back
+            // from a mission, and in the Editor the lock carries into the next Play session.
+            PlayerInputLock.PushCursorFree(this);
+
             // Coming back from gameplay: the previous run's session is finished here so
             // its playtime is recorded even if the player never quits the application.
             if (GameProgressTracker.Instance.HasActiveSession)
@@ -98,6 +104,13 @@ namespace ShinyMinds.Menu
             {
                 Show(Screen.Auth);
             }
+        }
+
+        private void OnDestroy()
+        {
+            // Released as the menu unloads, so the gameplay scene re-locks the cursor on
+            // its own. Leaving the claim behind would free the cursor during a mission.
+            PlayerInputLock.PopCursorFree(this);
         }
 
         // ---------------------------------------------------------------- build
