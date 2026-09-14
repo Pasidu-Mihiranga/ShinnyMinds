@@ -25,14 +25,9 @@ alongside an assistant that can answer questions about their progress.
 Both the game and the dashboard talk only to the API. Neither talks to a database, and
 neither holds a third-party API key.
 
-```
-Unity client  ──►  ShinyMinds API  ──►  PostgreSQL
-                        │
-Parent dashboard ──►    ├──────────►  Groq   (assistant replies)
-                        │
-Unity client  ─────────────────────►  Groq        (NPC dialogue)
-                                      ElevenLabs  (NPC speech)
-```
+## Architecture
+
+![System structure](docs/architecture.png)
 
 ---
 
